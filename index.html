@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教师课表查询系统</title>
+    <title>教师课表查询系统 - 支持搜索功能</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -21,7 +21,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1400px;
             margin: 0 auto;
             background-color: white;
             border-radius: 15px;
@@ -87,7 +87,7 @@
         }
         
         .teacher-sidebar {
-            width: 300px;
+            width: 320px;
             background: #f8fcfb;
             border-right: 1px solid #e0e0e0;
             display: flex;
@@ -98,7 +98,46 @@
             padding: 15px;
             background: #1a5f7a;
             color: white;
-            font-weight: bold;
+        }
+        
+        .search-container {
+            padding: 10px 15px;
+            background: #e8f6f3;
+            border-bottom: 1px solid #d1e3e0;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #2a9d8f;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 10px 10px 10px 40px;
+            border: 1px solid #c8e6e1;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: #2a9d8f;
+            box-shadow: 0 0 0 2px rgba(42, 157, 143, 0.2);
+        }
+        
+        .search-info {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
         }
         
         .teacher-list-container {
@@ -128,6 +167,10 @@
             border-color: #1a5f7a;
         }
         
+        .teacher-item.hidden {
+            display: none;
+        }
+        
         .teacher-item-name {
             font-weight: bold;
             font-size: 1rem;
@@ -137,6 +180,16 @@
             font-size: 0.8rem;
             color: #666;
             margin-top: 3px;
+        }
+        
+        .teacher-item.active .teacher-item-desc {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .no-teachers-found {
+            text-align: center;
+            padding: 30px 20px;
+            color: #7f8c8d;
         }
         
         .timetable-main {
@@ -221,41 +274,6 @@
             font-weight: bold;
         }
         
-        /* 课程班级单元格样式 */
-        .course-cell {
-            font-weight: 500;
-            line-height: 1.4;
-        }
-        
-        .course-cell .course-name {
-            display: block;
-            font-weight: bold;
-            font-size: 0.95rem;
-        }
-        
-        .course-cell .class-info {
-            display: block;
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 3px;
-        }
-        
-        .course-cell.language { background: #e3f2fd; }
-        .course-cell.math { background: #f3e5f5; }
-        .course-cell.english { background: #e8f5e8; }
-        .course-cell.physics { background: #fff3e0; }
-        .course-cell.chemistry { background: #fce4ec; }
-        .course-cell.sports { background: #e8eaf6; }
-        .course-cell.music { background: #f3e5f5; }
-        .course-cell.art { background: #e0f2f1; }
-        .course-cell.history { background: #fff8e1; }
-        .course-cell.geography { background: #f1f8e9; }
-        .course-cell.self-study { background: #f5f5f5; }
-        .course-cell.activity { background: #e8f5e8; }
-        .course-cell.meeting { background: #e3f2fd; }
-        .course-cell.experiment { background: #fce4ec; }
-        .course-cell.tutoring { background: #f1f8e9; }
-        
         .loading {
             display: flex;
             align-items: center;
@@ -289,6 +307,26 @@
             border-left: 4px solid #28a745;
         }
         
+        .course-cell {
+            font-weight: 500;
+        }
+        
+        .course-cell.language { background: #e3f2fd; }
+        .course-cell.math { background: #f3e5f5; }
+        .course-cell.english { background: #e8f5e8; }
+        .course-cell.physics { background: #fff3e0; }
+        .course-cell.chemistry { background: #fce4ec; }
+        .course-cell.sports { background: #e8eaf6; }
+        .course-cell.music { background: #f3e5f5; }
+        .course-cell.art { background: #e0f2f1; }
+        .course-cell.history { background: #fff8e1; }
+        .course-cell.geography { background: #f1f8e9; }
+        .course-cell.self-study { background: #f5f5f5; }
+        .course-cell.activity { background: #e8f5e8; }
+        .course-cell.meeting { background: #e3f2fd; }
+        .course-cell.experiment { background: #fce4ec; }
+        .course-cell.tutoring { background: #f1f8e9; }
+        
         footer {
             padding: 15px 30px;
             background: #f8fcfb;
@@ -302,14 +340,12 @@
             min-height: 60px;
         }
         
-        .json-format-example {
-            background: #f8fcfb;
-            padding: 10px;
-            border-radius: 6px;
-            margin-top: 10px;
-            font-family: monospace;
-            font-size: 0.8rem;
-            white-space: pre-wrap;
+        .search-highlight {
+            background-color: #fff3cd;
+            color: #856404;
+            font-weight: bold;
+            padding: 1px 3px;
+            border-radius: 3px;
         }
     </style>
 </head>
@@ -317,7 +353,7 @@
     <div class="container">
         <header>
             <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表查询系统</h1>
-            <p class="subtitle">支持课程+班级显示格式</p>
+            <p class="subtitle">支持教师搜索功能，快速查找目标教师</p>
         </header>
         
         <div class="control-panel">
@@ -346,6 +382,18 @@
                 <div class="teacher-list-header">
                     <i class="fas fa-list"></i> 教师列表 (<span id="teacherCountDisplay">0</span>)
                 </div>
+                
+                <div class="search-container">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" class="search-input" id="teacherSearch" 
+                               placeholder="搜索教师姓名..." disabled>
+                    </div>
+                    <div class="search-info">
+                        已显示 <span id="visibleTeachersCount">0</span> / <span id="totalTeachersCount">0</span> 位教师
+                    </div>
+                </div>
+                
                 <div class="teacher-list-container" id="teacherList">
                     <div class="no-data">请先加载数据源</div>
                 </div>
@@ -378,26 +426,8 @@
             </div>
         </div>
         
-        <div class="control-panel" style="border-top: 1px solid #e0e0e0; border-bottom: none;">
-            <h3><i class="fas fa-info-circle"></i> JSON文件格式说明</h3>
-            <p>为了让课程和班级在同一单元格显示，JSON格式支持两种形式：</p>
-            
-            <div class="json-format-example">
-格式1: 字符串形式 (简单)
-"语文<br>高一一班"
-
-格式2: 对象形式 (推荐)
-{
-  "course": "语文",
-  "class": "高一一班"
-}
-            </div>
-            
-            <p>支持8行6列的Excel格式，第一行表头，第一列行标题</p>
-        </div>
-        
         <footer>
-            <p>© 2023 教师课表查询系统 | 支持课程+班级显示格式</p>
+            <p>© 2023 教师课表查询系统 | 支持教师姓名搜索功能，快速定位目标教师</p>
         </footer>
     </div>
 
@@ -411,7 +441,10 @@
         const successText = document.getElementById('successText');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const teacherCountDisplay = document.getElementById('teacherCountDisplay');
+        const visibleTeachersCount = document.getElementById('visibleTeachersCount');
+        const totalTeachersCount = document.getElementById('totalTeachersCount');
         const teacherList = document.getElementById('teacherList');
+        const teacherSearch = document.getElementById('teacherSearch');
         const teacherInfoHeader = document.getElementById('teacherInfoHeader');
         const currentTeacherName = document.getElementById('currentTeacherName');
         const currentTeacherDesc = document.getElementById('currentTeacherDesc');
@@ -424,6 +457,7 @@
         // 全局变量
         let jsonData = null;
         let teachers = [];
+        let allTeacherItems = [];
         let currentTeacherIndex = -1;
         
         // 课程颜色映射
@@ -457,6 +491,25 @@
                 if (e.key === 'Enter') {
                     const url = customDataSource.value.trim();
                     loadData(url);
+                }
+            });
+            
+            // 搜索框输入事件
+            teacherSearch.addEventListener('input', () => {
+                searchTeachers(teacherSearch.value.trim());
+            });
+            
+            // 搜索框键盘事件
+            teacherSearch.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    teacherSearch.value = '';
+                    searchTeachers('');
+                } else if (e.key === 'Enter' && e.ctrlKey) {
+                    // Ctrl+Enter 选择第一个可见的教师
+                    const firstVisible = document.querySelector('.teacher-item:not(.hidden)');
+                    if (firstVisible) {
+                        firstVisible.click();
+                    }
                 }
             });
         }
@@ -523,8 +576,13 @@
                 
                 jsonData = data;
                 teacherCountDisplay.textContent = teachers.length;
+                totalTeachersCount.textContent = teachers.length;
                 
                 displayTeacherList(teachers);
+                
+                // 启用搜索框
+                teacherSearch.disabled = false;
+                teacherSearch.placeholder = `在 ${teachers.length} 位教师中搜索...`;
                 
                 showSuccess(`成功加载 ${teachers.length} 位教师的数据`);
                 
@@ -565,9 +623,11 @@
         // 显示教师列表
         function displayTeacherList(teachers) {
             teacherList.innerHTML = '';
+            allTeacherItems = [];
             
             if (teachers.length === 0) {
-                teacherList.innerHTML = '<div class="no-data">未找到教师数据</div>';
+                teacherList.innerHTML = '<div class="no-teachers-found">未找到教师数据</div>';
+                visibleTeachersCount.textContent = '0';
                 return;
             }
             
@@ -575,10 +635,14 @@
                 const teacherItem = document.createElement('div');
                 teacherItem.className = 'teacher-item';
                 teacherItem.dataset.id = teacher.id;
+                teacherItem.dataset.name = teacher.name.toLowerCase();
+                teacherItem.dataset.description = (teacher.description || '').toLowerCase();
+                
+                // 创建教师项内容
                 teacherItem.innerHTML = `
-                    <div class="teacher-item-name">${teacher.name}</div>
+                    <div class="teacher-item-name" id="teacherName_${teacher.id}">${teacher.name}</div>
                     ${teacher.description ? 
-                      `<div class="teacher-item-desc">${teacher.description}</div>` : ''}
+                      `<div class="teacher-item-desc" id="teacherDesc_${teacher.id}">${teacher.description}</div>` : ''}
                 `;
                 
                 teacherItem.addEventListener('click', () => {
@@ -586,12 +650,133 @@
                 });
                 
                 teacherList.appendChild(teacherItem);
+                allTeacherItems.push(teacherItem);
             });
+            
+            // 更新可见教师计数
+            visibleTeachersCount.textContent = teachers.length;
             
             // 默认选择第一个教师
             if (teachers.length > 0) {
                 selectTeacher(0);
             }
+        }
+        
+        // 搜索教师
+        function searchTeachers(searchTerm) {
+            if (!allTeacherItems.length) return;
+            
+            const searchLower = searchTerm.toLowerCase();
+            let visibleCount = 0;
+            
+            allTeacherItems.forEach(item => {
+                const name = item.dataset.name;
+                const description = item.dataset.description || '';
+                
+                // 检查是否匹配
+                const matches = searchTerm === '' || 
+                              name.includes(searchLower) || 
+                              description.includes(searchLower);
+                
+                if (matches) {
+                    item.classList.remove('hidden');
+                    visibleCount++;
+                    
+                    // 高亮显示匹配的文本
+                    if (searchTerm) {
+                        highlightText(item, searchTerm);
+                    } else {
+                        removeHighlight(item);
+                    }
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+            
+            // 更新可见教师计数
+            visibleTeachersCount.textContent = visibleCount;
+            
+            // 如果没有可见的教师，显示提示
+            if (visibleCount === 0 && searchTerm) {
+                if (!document.getElementById('noResultsMessage')) {
+                    const noResults = document.createElement('div');
+                    noResults.id = 'noResultsMessage';
+                    noResults.className = 'no-teachers-found';
+                    noResults.innerHTML = `
+                        <i class="fas fa-search fa-2x"></i>
+                        <h4 style="margin: 10px 0 5px;">未找到匹配的教师</h4>
+                        <p>尝试搜索其他关键词</p>
+                    `;
+                    teacherList.appendChild(noResults);
+                }
+            } else {
+                const noResults = document.getElementById('noResultsMessage');
+                if (noResults) {
+                    noResults.remove();
+                }
+            }
+            
+            // 自动选择第一个可见的教师
+            if (visibleCount > 0 && searchTerm && currentTeacherIndex === -1) {
+                const firstVisible = document.querySelector('.teacher-item:not(.hidden)');
+                if (firstVisible) {
+                    const teacherId = parseInt(firstVisible.dataset.id);
+                    selectTeacher(teacherId);
+                }
+            }
+        }
+        
+        // 高亮显示搜索文本
+        function highlightText(teacherItem, searchTerm) {
+            const nameElement = teacherItem.querySelector('.teacher-item-name');
+            const descElement = teacherItem.querySelector('.teacher-item-desc');
+            
+            if (nameElement) {
+                const originalName = teachers.find(t => t.id === parseInt(teacherItem.dataset.id)).name;
+                const highlightedName = highlightTextInElement(originalName, searchTerm);
+                nameElement.innerHTML = highlightedName;
+            }
+            
+            if (descElement) {
+                const originalDesc = teachers.find(t => t.id === parseInt(teacherItem.dataset.id)).description;
+                if (originalDesc) {
+                    const highlightedDesc = highlightTextInElement(originalDesc, searchTerm);
+                    descElement.innerHTML = highlightedDesc;
+                }
+            }
+        }
+        
+        // 在文本中高亮显示搜索词
+        function highlightTextInElement(text, searchTerm) {
+            if (!searchTerm) return text;
+            
+            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+        
+        // 移除高亮
+        function removeHighlight(teacherItem) {
+            const nameElement = teacherItem.querySelector('.teacher-item-name');
+            const descElement = teacherItem.querySelector('.teacher-item-desc');
+            
+            if (nameElement) {
+                const teacher = teachers.find(t => t.id === parseInt(teacherItem.dataset.id));
+                if (teacher) {
+                    nameElement.textContent = teacher.name;
+                }
+            }
+            
+            if (descElement) {
+                const teacher = teachers.find(t => t.id === parseInt(teacherItem.dataset.id));
+                if (teacher && teacher.description) {
+                    descElement.textContent = teacher.description;
+                }
+            }
+        }
+        
+        // 转义正则表达式特殊字符
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
         
         // 选择教师
@@ -600,10 +785,17 @@
             if (!teacher) return;
             
             // 更新教师选择状态
-            document.querySelectorAll('.teacher-item').forEach(item => {
+            allTeacherItems.forEach(item => {
                 item.classList.remove('active');
             });
-            document.querySelector(`.teacher-item[data-id="${teacherId}"]`).classList.add('active');
+            
+            const selectedItem = document.querySelector(`.teacher-item[data-id="${teacherId}"]:not(.hidden)`);
+            if (selectedItem) {
+                selectedItem.classList.add('active');
+                
+                // 滚动到可见区域
+                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
             
             // 显示教师信息
             currentTeacherName.textContent = teacher.name;
@@ -678,25 +870,19 @@
                     const cellDisplay = formatCellValue(cellValue);
                     
                     let cellClass = '';
-                    let cellContent = cellDisplay;
-                    
                     if (col === 0) {
-                        // 行标题单元格
                         cellClass = 'row-header';
                     } else if (cellValue) {
-                        // 课程单元格
-                        cellClass = 'course-cell';
-                        
                         // 根据课程内容添加颜色类
                         for (const [keyword, colorClass] of Object.entries(courseColors)) {
-                            if (cellDisplay.includes(keyword)) {
-                                cellClass += ' ' + colorClass;
+                            if (cellValue.includes(keyword)) {
+                                cellClass = 'course-cell ' + colorClass;
                                 break;
                             }
                         }
                     }
                     
-                    bodyHTML += `<td class="${cellClass}">${cellContent}</td>`;
+                    bodyHTML += `<td class="${cellClass}">${cellDisplay}</td>`;
                 }
                 
                 bodyHTML += '</tr>';
@@ -704,40 +890,15 @@
             tableBody.innerHTML = bodyHTML;
         }
         
-        // 格式化单元格值 - 支持课程+班级格式
+        // 格式化单元格值
         function formatCellValue(value) {
-            if (value === null || value === undefined) {
+            if (value === null || value === undefined || value === '') {
                 return '';
             }
             
-            // 如果值是对象形式 {course: "课程", class: "班级"}
-            if (typeof value === 'object' && value !== null) {
-                if (value.course) {
-                    let html = `<span class="course-name">${value.course}</span>`;
-                    if (value.class) {
-                        html += `<span class="class-info">${value.class}</span>`;
-                    }
-                    return html;
-                }
-                return JSON.stringify(value);
-            }
-            
-            // 如果值是字符串，检查是否包含<br>标签
-            if (typeof value === 'string') {
-                if (value.includes('<br>')) {
-                    const parts = value.split('<br>');
-                    if (parts.length >= 2) {
-                        return `<span class="course-name">${parts[0]}</span><span class="class-info">${parts[1]}</span>`;
-                    }
-                }
-                
-                // 如果是"课程/班级"格式
-                if (value.includes('/')) {
-                    const parts = value.split('/');
-                    if (parts.length >= 2) {
-                        return `<span class="course-name">${parts[0]}</span><span class="class-info">${parts[1]}</span>`;
-                    }
-                }
+            // 将<br>标签转换为HTML换行
+            if (typeof value === 'string' && value.includes('<br>')) {
+                return value.split('<br>').join('<br>');
             }
             
             return String(value);
@@ -782,6 +943,7 @@
         function resetUI() {
             jsonData = null;
             teachers = [];
+            allTeacherItems = [];
             currentTeacherIndex = -1;
             
             teacherInfoHeader.style.display = 'none';
@@ -789,6 +951,11 @@
             noDataMessage.style.display = 'block';
             teacherList.innerHTML = '<div class="no-data">请先加载数据源</div>';
             teacherCountDisplay.textContent = '0';
+            totalTeachersCount.textContent = '0';
+            visibleTeachersCount.textContent = '0';
+            teacherSearch.value = '';
+            teacherSearch.disabled = true;
+            teacherSearch.placeholder = '请先加载数据源';
             
             hideError();
             hideSuccess();
