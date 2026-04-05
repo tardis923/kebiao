@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教师课表JSON查询系统</title>
+    <title>教师课表查询系统 - GitHub Pages版</title>
+    <!-- 加载pako库用于解压缩.gz文件 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -55,14 +58,14 @@
             margin-bottom: 20px;
         }
         
-        .load-section {
+        .data-source-section {
             margin-top: 20px;
             padding: 20px;
             background-color: rgba(255, 255, 255, 0.15);
             border-radius: 10px;
         }
         
-        .load-title {
+        .data-source-title {
             font-size: 1.1rem;
             margin-bottom: 15px;
             display: flex;
@@ -70,63 +73,74 @@
             justify-content: center;
         }
         
-        .load-title i {
+        .data-source-title i {
             margin-right: 10px;
         }
         
-        .load-btn {
+        .data-source-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .data-source-btn {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
             background-color: rgba(255, 255, 255, 0.2);
-            padding: 12px 25px;
+            padding: 10px 20px;
             border-radius: 8px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             text-decoration: none;
             color: white;
             transition: all 0.3s;
             border: 1px solid rgba(255, 255, 255, 0.3);
             cursor: pointer;
             border: none;
-            width: 200px;
         }
         
-        .load-btn:hover {
+        .data-source-btn:hover:not(:disabled) {
             background-color: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
             text-decoration: none;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
         
-        .load-btn:disabled {
+        .data-source-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
         
-        .load-btn i {
+        .data-source-btn i {
             margin-right: 8px;
         }
         
-        .file-status {
-            margin-top: 15px;
-            padding: 10px;
+        .data-source-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .data-source-input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .data-source-status {
+            margin-top: 10px;
+            padding: 8px;
             background-color: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
             font-size: 0.9rem;
             display: none;
         }
         
-        .file-status.active {
+        .data-source-status.active {
             display: block;
-        }
-        
-        .file-status a {
-            color: white;
-            text-decoration: underline;
-        }
-        
-        .file-status a:hover {
-            text-decoration: none;
         }
         
         .content {
@@ -206,7 +220,7 @@
             align-items: center;
         }
         
-        .search-btn:hover {
+        .search-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(26, 95, 122, 0.3);
         }
@@ -431,8 +445,13 @@
             transition: all 0.3s;
         }
         
-        .export-btn:hover {
+        .export-btn:hover:not(:disabled) {
             background-color: #144b61;
+        }
+        
+        .export-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
         }
         
         .export-btn i {
@@ -475,7 +494,28 @@
             max-width: 180px;
         }
         
-        .conversion-instructions {
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .progress-bar.active {
+            display: block;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a5f7a, #2a9d8f);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .data-source-info {
             background-color: rgba(255, 255, 255, 0.1);
             padding: 10px;
             border-radius: 5px;
@@ -494,6 +534,15 @@
             
             h1 {
                 font-size: 1.8rem;
+            }
+            
+            .data-source-buttons {
+                flex-direction: column;
+            }
+            
+            .data-source-btn {
+                width: 100%;
+                justify-content: center;
             }
         }
         
@@ -520,10 +569,6 @@
                 width: 100%;
                 justify-content: center;
             }
-            
-            .load-btn {
-                width: 100%;
-            }
         }
     </style>
 </head>
@@ -531,23 +576,39 @@
     <div class="container">
         <header>
             <div class="header-content">
-                <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表JSON查询系统</h1>
-                <p class="subtitle">加载JSON格式的课表文件，快速查询教师课表</p>
+                <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表查询系统</h1>
+                <p class="subtitle">GitHub Pages版 - 支持JSON和JSON.GZ数据源</p>
                 
-                <div class="load-section">
-                    <div class="load-title">
-                        <i class="fas fa-file-import"></i> 加载JSON课表文件
-                    </div>
-                    <button class="load-btn" id="loadJsonBtn">
-                        <i class="fas fa-file-code"></i> 加载课表JSON
-                    </button>
-                    
-                    <div class="file-status" id="fileStatus">
-                        正在加载文件：<span id="currentFileName">t.json</span>
+                <div class="data-source-section">
+                    <div class="data-source-title">
+                        <i class="fas fa-database"></i> 选择数据源
                     </div>
                     
-                    <div class="conversion-instructions">
-                        <p><strong>提示：</strong> 如果还没有JSON文件，请先运行Python脚本将Excel转换为JSON格式</p>
+                    <div class="data-source-buttons">
+                        <button class="data-source-btn" id="loadJsonBtn">
+                            <i class="fas fa-file-code"></i> 加载JSON数据
+                        </button>
+                        <button class="data-source-btn" id="loadJsonGzBtn">
+                            <i class="fas fa-file-archive"></i> 加载JSON.GZ数据
+                        </button>
+                        <button class="data-source-btn" id="loadExcelBtn">
+                            <i class="fas fa-file-excel"></i> 上传Excel文件
+                        </button>
+                    </div>
+                    
+                    <input type="text" class="data-source-input" id="customDataSource" 
+                           placeholder="或输入自定义数据源URL (如: https://example.com/data.json.gz)">
+                    
+                    <div class="data-source-status" id="dataSourceStatus">
+                        当前数据源：<span id="currentDataSource">未选择</span>
+                    </div>
+                    
+                    <div class="data-source-info">
+                        <p><strong>提示：</strong> 在GitHub Pages上，推荐使用.json.gz格式，文件体积更小，加载更快。</p>
+                    </div>
+                    
+                    <div class="progress-bar" id="progressBar">
+                        <div class="progress-fill" id="progressFill"></div>
                     </div>
                 </div>
             </div>
@@ -560,9 +621,10 @@
                 </div>
                 
                 <div class="file-info" id="fileInfo">
-                    <p><i class="fas fa-file-code"></i> <strong>文件名称：</strong> <span id="fileName">未加载</span></p>
+                    <p><i class="fas fa-file"></i> <strong>数据源：</strong> <span id="dataSourceName">未加载</span></p>
                     <p><i class="fas fa-layer-group"></i> <strong>教师数量：</strong> <span id="teacherCount">0</span> 人</p>
-                    <p><i class="fas fa-clock"></i> <strong>转换时间：</strong> <span id="conversionTime">-</span></p>
+                    <p><i class="fas fa-clock"></i> <strong>加载时间：</strong> <span id="loadTime">-</span></p>
+                    <p><i class="fas fa-hdd"></i> <strong>文件大小：</strong> <span id="fileSize">-</span></p>
                 </div>
                 
                 <div class="sheet-preview" id="sheetPreview">
@@ -588,7 +650,7 @@
                     <div class="form-group">
                         <label for="teacherSelect"><i class="fas fa-user-tie"></i> 选择教师</label>
                         <select id="teacherSelect" disabled>
-                            <option value="">请先加载JSON文件</option>
+                            <option value="">请先加载数据源</option>
                         </select>
                         <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">或直接输入教师姓名搜索：</p>
                         <input type="text" id="teacherInput" placeholder="输入教师姓名..." disabled>
@@ -600,19 +662,19 @@
                 </div>
                 
                 <div class="form-group" style="margin-top: 20px;">
-                    <label><i class="fas fa-info-circle"></i> 当前文件信息</label>
+                    <label><i class="fas fa-info-circle"></i> 系统信息</label>
                     <div style="background-color: #e8f6f3; padding: 12px; border-radius: 8px;">
-                        <p><i class="fas fa-file-alt"></i> <strong>JSON文件：</strong> <span id="jsonFileName">未加载</span></p>
+                        <p><i class="fas fa-code"></i> <strong>运行环境：</strong> <span id="runtimeEnv">GitHub Pages</span></p>
+                        <p><i class="fas fa-database"></i> <strong>数据格式：</strong> <span id="dataFormat">未加载</span></p>
                         <p><i class="fas fa-users"></i> <strong>教师总数：</strong> <span id="totalTeachers">0</span></p>
-                        <p><i class="fas fa-database"></i> <strong>数据格式：</strong> <span id="dataFormat">JSON</span></p>
                     </div>
                 </div>
                 
                 <div style="margin-top: 20px; background-color: #e8f6f3; padding: 15px; border-radius: 8px;">
                     <h3 style="margin-bottom: 8px; color: #1a5f7a;"><i class="fas fa-info-circle"></i> 使用说明</h3>
-                    <p style="margin-bottom: 6px;"><strong>1. 准备JSON文件：</strong> 先运行Python脚本将Excel转换为JSON</p>
-                    <p style="margin-bottom: 6px;"><strong>2. 加载文件：</strong> 点击"加载课表JSON"按钮加载JSON文件</p>
-                    <p style="margin-bottom: 6px;"><strong>3. 查询功能：</strong> 文件加载成功后，选择教师即可查看对应的课表</p>
+                    <p style="margin-bottom: 6px;"><strong>1. 选择数据源：</strong> 从上方选择数据源（推荐使用.json.gz格式）</p>
+                    <p style="margin-bottom: 6px;"><strong>2. 加载数据：</strong> 系统会自动从GitHub加载数据文件</p>
+                    <p style="margin-bottom: 6px;"><strong>3. 查询功能：</strong> 数据加载成功后，选择教师即可查看对应的课表</p>
                 </div>
             </div>
             
@@ -648,7 +710,7 @@
                     <div class="no-data" id="noDataMessage">
                         <i class="fas fa-calendar-alt"></i>
                         <h3>暂无课表数据</h3>
-                        <p>请先加载JSON文件并选择教师以查看课表</p>
+                        <p>请先加载数据源并选择教师以查看课表</p>
                     </div>
                     
                     <div class="loading" id="loadingIndicator" style="display: none;">
@@ -673,7 +735,7 @@
         </div>
         
         <footer>
-            <p>© 2023 教师课表JSON查询系统 | 支持JSON格式课表文件</p>
+            <p>© 2023 教师课表查询系统 | 专为GitHub Pages优化，支持.json和.json.gz数据源</p>
         </footer>
     </div>
 
@@ -684,18 +746,26 @@
         let currentTeacherIndex = -1;
         let currentTeacherData = [];
         let currentTeacherName = "";
+        let currentDataSource = "";
+        let currentDataSourceType = "";
         
         // DOM元素
         const loadJsonBtn = document.getElementById('loadJsonBtn');
-        const fileStatus = document.getElementById('fileStatus');
-        const currentFileName = document.getElementById('currentFileName');
+        const loadJsonGzBtn = document.getElementById('loadJsonGzBtn');
+        const loadExcelBtn = document.getElementById('loadExcelBtn');
+        const customDataSource = document.getElementById('customDataSource');
+        const dataSourceStatus = document.getElementById('dataSourceStatus');
+        const currentDataSourceElem = document.getElementById('currentDataSource');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
         const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
+        const dataSourceName = document.getElementById('dataSourceName');
         const teacherCount = document.getElementById('teacherCount');
-        const conversionTime = document.getElementById('conversionTime');
-        const jsonFileName = document.getElementById('jsonFileName');
-        const totalTeachers = document.getElementById('totalTeachers');
+        const loadTime = document.getElementById('loadTime');
+        const fileSize = document.getElementById('fileSize');
+        const runtimeEnv = document.getElementById('runtimeEnv');
         const dataFormat = document.getElementById('dataFormat');
+        const totalTeachers = document.getElementById('totalTeachers');
         const teacherSelect = document.getElementById('teacherSelect');
         const teacherInput = document.getElementById('teacherInput');
         const searchBtn = document.getElementById('searchBtn');
@@ -716,11 +786,37 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.xls,.xlsx';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
         
         // 初始化事件监听器
         function initEventListeners() {
-            // 加载JSON文件按钮事件
-            loadJsonBtn.addEventListener('click', loadJsonFile);
+            // 数据源按钮事件
+            loadJsonBtn.addEventListener('click', () => loadData('教师课表.json', 'json'));
+            loadJsonGzBtn.addEventListener('click', () => loadData('教师课表.json.gz', 'json.gz'));
+            loadExcelBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // 自定义数据源输入事件
+            customDataSource.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && customDataSource.value.trim()) {
+                    const url = customDataSource.value.trim();
+                    if (url.endsWith('.json.gz')) {
+                        loadData(url, 'json.gz');
+                    } else if (url.endsWith('.json')) {
+                        loadData(url, 'json');
+                    } else {
+                        showError('请输入有效的.json或.json.gz文件URL');
+                    }
+                }
+            });
+            
+            // Excel文件上传事件
+            fileInput.addEventListener('change', handleFileUpload);
             
             // 搜索按钮事件
             searchBtn.addEventListener('click', searchTeacherTimetable);
@@ -739,19 +835,27 @@
             
             // 设置教师输入框自动完成
             setupTeacherAutocomplete();
+            
+            // 尝试自动加载默认数据源
+            setTimeout(() => {
+                // 可以在这里添加自动加载逻辑
+                // 例如：loadData('教师课表.json.gz', 'json.gz');
+            }, 1000);
         }
         
-        // 加载JSON文件
-        async function loadJsonFile() {
-            const filename = '教师课表.json';
+        // 加载数据
+        async function loadData(url, type) {
+            currentDataSource = url;
+            currentDataSourceType = type;
+            
+            // 显示数据源状态
+            currentDataSourceElem.textContent = url;
+            dataSourceStatus.classList.add('active');
             
             // 显示加载状态
-            loadJsonBtn.disabled = true;
-            loadJsonBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 正在加载...';
-            fileStatus.classList.add('active');
-            currentFileName.textContent = filename;
+            progressBar.classList.add('active');
+            progressFill.style.width = '10%';
             
-            // 显示整体加载状态
             loadingIndicator.style.display = 'block';
             noDataMessage.style.display = 'none';
             timetableContent.style.display = 'none';
@@ -762,20 +866,77 @@
             hideError();
             
             try {
-                // 使用fetch加载JSON文件
-                const response = await fetch(filename);
+                // 记录开始时间
+                const startTime = performance.now();
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                // 更新进度
+                progressFill.style.width = '30%';
+                
+                let response;
+                let dataSize = 0;
+                
+                // 加载数据
+                if (type === 'json.gz') {
+                    // 加载压缩的JSON文件
+                    response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    // 获取文件大小
+                    dataSize = response.headers.get('content-length') || 0;
+                    
+                    // 获取原始数据
+                    const arrayBuffer = await response.arrayBuffer();
+                    
+                    // 更新进度
+                    progressFill.style.width = '60%';
+                    
+                    // 解压缩
+                    const decompressed = pako.inflate(arrayBuffer, { to: 'string' });
+                    
+                    // 更新进度
+                    progressFill.style.width = '80%';
+                    
+                    // 解析JSON
+                    jsonData = JSON.parse(decompressed);
+                    
+                } else if (type === 'json') {
+                    // 加载普通的JSON文件
+                    response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json; charset=utf-8'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    // 获取文件大小
+                    dataSize = response.headers.get('content-length') || 0;
+                    
+                    // 更新进度
+                    progressFill.style.width = '60%';
+                    
+                    // 解析JSON
+                    jsonData = await response.json();
                 }
                 
-                jsonData = await response.json();
+                // 计算加载时间
+                const endTime = performance.now();
+                const loadDuration = (endTime - startTime).toFixed(0);
+                
+                // 更新进度
+                progressFill.style.width = '100%';
                 
                 // 获取所有教师名称
                 teacherNames = Object.keys(jsonData.teachers || {});
                 
                 // 更新文件信息
-                updateFileInfo(jsonData, teacherNames.length);
+                updateFileInfo(url, teacherNames.length, dataSize, loadDuration, type);
                 
                 // 填充教师选择下拉框
                 populateTeacherSelect(teacherNames);
@@ -783,11 +944,7 @@
                 // 显示教师预览列表
                 displayTeacherPreview(teacherNames);
                 
-                // 重置按钮状态
-                loadJsonBtn.disabled = false;
-                loadJsonBtn.innerHTML = '<i class="fas fa-file-code"></i> 重新加载JSON';
-                
-                // 隐藏整体加载状态
+                // 隐藏加载状态
                 loadingIndicator.style.display = 'none';
                 
                 // 启用查询功能
@@ -796,29 +953,157 @@
                 searchBtn.disabled = false;
                 
                 // 显示成功消息
-                showSuccess(`成功加载JSON文件: ${filename}，共发现 ${teacherNames.length} 个教师`);
+                showSuccess(`成功加载${type}数据: ${url}，共发现 ${teacherNames.length} 个教师`);
                 
             } catch (err) {
-                // 重置按钮状态
-                loadJsonBtn.disabled = false;
-                loadJsonBtn.innerHTML = '<i class="fas fa-file-code"></i> 加载课表JSON';
-                
-                // 隐藏加载状态
+                showError(`加载${type}数据失败: ${err.message}`);
                 loadingIndicator.style.display = 'none';
-                
-                // 显示错误
-                showError(`加载JSON文件失败: ${err.message}。请确保已生成JSON文件。`);
             }
         }
         
+        // 处理Excel文件上传
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // 验证文件类型
+            const validTypes = [
+                'application/vnd.ms-excel',
+                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/octet-stream'
+            ];
+            
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const isValidType = validTypes.includes(file.type) || 
+                                ['xls', 'xlsx'].includes(fileExt);
+            
+            if (!isValidType) {
+                showError('请选择有效的Excel文件（.xls 或 .xlsx 格式）');
+                return;
+            }
+            
+            // 显示数据源状态
+            currentDataSource = file.name;
+            currentDataSourceType = 'excel';
+            currentDataSourceElem.textContent = file.name;
+            dataSourceStatus.classList.add('active');
+            
+            // 显示加载状态
+            progressBar.classList.add('active');
+            progressFill.style.width = '20%';
+            
+            loadingIndicator.style.display = 'block';
+            noDataMessage.style.display = 'none';
+            timetableContent.style.display = 'none';
+            teacherInfo.classList.remove('active');
+            actionButtons.style.display = 'none';
+            sheetPreview.classList.remove('active');
+            fileInfo.classList.remove('active');
+            hideError();
+            
+            // 记录开始时间
+            const startTime = performance.now();
+            
+            // 读取文件
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    
+                    // 获取所有工作表名称
+                    teacherNames = workbook.SheetNames;
+                    
+                    // 构建JSON数据结构
+                    jsonData = {
+                        metadata: {
+                            filename: file.name,
+                            sheet_count: teacherNames.length,
+                            conversion_time: new Date().toISOString(),
+                            format: "Excel转JSON"
+                        },
+                        teachers: {}
+                    };
+                    
+                    // 处理每个工作表
+                    teacherNames.forEach((sheetName, index) => {
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonDataArray = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+                        
+                        jsonData.teachers[sheetName] = {
+                            name: sheetName,
+                            rows: jsonDataArray.length,
+                            cols: jsonDataArray.length > 0 ? Math.max(...jsonDataArray.map(row => row ? row.length : 0)) : 0,
+                            data: jsonDataArray
+                        };
+                    });
+                    
+                    // 计算加载时间
+                    const endTime = performance.now();
+                    const loadDuration = (endTime - startTime).toFixed(0);
+                    
+                    // 更新进度
+                    progressFill.style.width = '100%';
+                    
+                    // 更新文件信息
+                    updateFileInfo(file.name, teacherNames.length, file.size, loadDuration, 'excel');
+                    
+                    // 填充教师选择下拉框
+                    populateTeacherSelect(teacherNames);
+                    
+                    // 显示教师预览列表
+                    displayTeacherPreview(teacherNames);
+                    
+                    // 隐藏加载状态
+                    loadingIndicator.style.display = 'none';
+                    
+                    // 启用查询功能
+                    teacherSelect.disabled = false;
+                    teacherInput.disabled = false;
+                    searchBtn.disabled = false;
+                    
+                    // 显示成功消息
+                    showSuccess(`成功加载Excel文件: ${file.name}，共发现 ${teacherNames.length} 个教师`);
+                    
+                } catch (err) {
+                    showError('读取Excel文件失败：' + err.message);
+                    loadingIndicator.style.display = 'none';
+                }
+            };
+            
+            reader.onerror = function() {
+                showError('读取文件失败，请重试');
+                loadingIndicator.style.display = 'none';
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
         // 更新文件信息
-        function updateFileInfo(data, teacherCountValue) {
-            fileName.textContent = data.metadata.filename || '教师课表.json';
+        function updateFileInfo(filename, teacherCountValue, dataSize, loadDuration, dataType) {
+            dataSourceName.textContent = filename;
             teacherCount.textContent = teacherCountValue;
-            conversionTime.textContent = data.metadata.conversion_time || '-';
-            jsonFileName.textContent = data.metadata.filename || '教师课表.json';
+            loadTime.textContent = `${loadDuration}ms`;
             totalTeachers.textContent = teacherCountValue;
-            dataFormat.textContent = data.metadata.format || 'JSON';
+            dataFormat.textContent = dataType === 'json.gz' ? 'JSON (压缩)' : 
+                                    dataType === 'json' ? 'JSON' : 'Excel';
+            
+            // 格式化文件大小
+            if (dataSize > 0) {
+                const sizeInKB = (dataSize / 1024).toFixed(1);
+                const sizeInMB = (dataSize / (1024 * 1024)).toFixed(2);
+                
+                if (dataSize < 1024) {
+                    fileSize.textContent = `${dataSize} B`;
+                } else if (dataSize < 1024 * 1024) {
+                    fileSize.textContent = `${sizeInKB} KB`;
+                } else {
+                    fileSize.textContent = `${sizeInMB} MB`;
+                }
+            } else {
+                fileSize.textContent = '-';
+            }
             
             fileInfo.classList.add('active');
         }
@@ -841,14 +1126,14 @@
             
             teachers.forEach((teacher, index) => {
                 const teacherItem = document.createElement('div');
-                teacherItem.className = 'teacher-item';
+                teacherItem.className = 'sheet-item';
                 teacherItem.textContent = teacher;
                 teacherItem.title = `点击查看 ${teacher} 的课表`;
                 teacherItem.dataset.index = index;
                 
                 teacherItem.addEventListener('click', function() {
                     // 移除其他项的active类
-                    document.querySelectorAll('.teacher-item').forEach(item => {
+                    document.querySelectorAll('.sheet-item').forEach(item => {
                         item.classList.remove('active');
                     });
                     
@@ -885,7 +1170,7 @@
                         teacherSelect.value = i;
                         
                         // 更新教师预览的高亮
-                        document.querySelectorAll('.teacher-item').forEach(item => {
+                        document.querySelectorAll('.sheet-item').forEach(item => {
                             item.classList.remove('active');
                             if (parseInt(item.dataset.index) === i) {
                                 item.classList.add('active');
@@ -906,7 +1191,7 @@
                         teacherInput.value = teacherNames[index];
                         
                         // 更新教师预览的高亮
-                        document.querySelectorAll('.teacher-item').forEach(item => {
+                        document.querySelectorAll('.sheet-item').forEach(item => {
                             item.classList.remove('active');
                             if (parseInt(item.dataset.index) === index) {
                                 item.classList.add('active');
@@ -1135,7 +1420,7 @@
                 document.body.removeChild(link);
                 
             } catch (err) {
-                showError('导出的课表时出错：' + err.message);
+                showError('导出课表时出错：' + err.message);
             }
         }
         
