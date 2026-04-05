@@ -6,7 +6,7 @@
     <title>教师班级课表综合查询系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 样式部分与之前相同，保持不变 */
+        /* 保持原有样式不变 */
         * {
             margin: 0;
             padding: 0;
@@ -159,30 +159,6 @@
             color: #1a5f7a;
         }
         
-        .file-type-indicator {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            margin-left: 5px;
-        }
-        
-        .file-type-class {
-            background: rgba(26, 95, 122, 0.2);
-            color: #1a5f7a;
-        }
-        
-        .file-type-teacher {
-            background: rgba(42, 157, 143, 0.2);
-            color: #2a9d8f;
-        }
-        
-        .file-type-both {
-            background: linear-gradient(90deg, rgba(26, 95, 122, 0.2), rgba(42, 157, 143, 0.2));
-            color: #1a5f7a;
-        }
-        
         .refresh-btn {
             background: none;
             border: none;
@@ -223,7 +199,7 @@
             background: white;
             border-radius: 10px;
             width: 90%;
-            max-width: 600px;
+            max-width: 500px;
             max-height: 80vh;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -293,13 +269,13 @@
             font-size: 1rem;
         }
         
-        .file-item-details {
+        .file-item-size {
             font-size: 0.8rem;
             color: #666;
             margin-top: 3px;
         }
         
-        .file-item.active .file-item-details {
+        .file-item.active .file-item-size {
             color: rgba(255, 255, 255, 0.9);
         }
         
@@ -344,7 +320,7 @@
             background: #e0e0e0;
         }
         
-        /* 侧边栏 - 修复布局 */
+        /* 侧边栏 */
         .teacher-sidebar {
             width: 300px;
             background: #f8fcfb;
@@ -354,7 +330,6 @@
         }
         
         .sidebar-section {
-            flex: none;
             border-bottom: 1px solid #e0e0e0;
         }
         
@@ -929,7 +904,6 @@
                 <i class="fas fa-file-code"></i>
                 <div class="current-data-text">
                     当前加载: <strong id="currentFileName">未选择文件</strong>
-                    <span id="fileTypeIndicator" class="file-type-indicator">未知类型</span>
                     <div style="font-size: 0.8rem; color: #666; margin-top: 2px;">
                         班级: <span id="classCount">0</span> 个 | 
                         教师: <span id="teacherCount">0</span> 位 | 
@@ -953,7 +927,7 @@
         </div>
         
         <div class="content">
-            <!-- 侧边栏 - 保持班级在上、教师在下的布局 -->
+            <!-- 侧边栏 -->
             <div class="teacher-sidebar" id="teacherSidebar">
                 <div class="sidebar-section">
                     <div class="section-header class-section">
@@ -1047,7 +1021,6 @@
         const successMessage = document.getElementById('successMessage');
         const successText = document.getElementById('successText');
         const loadingIndicator = document.getElementById('loadingIndicator');
-        const fileTypeIndicator = document.getElementById('fileTypeIndicator');
         
         // 文件选择弹窗相关元素
         const fileSelectModal = document.getElementById('fileSelectModal');
@@ -1130,27 +1103,25 @@
         
         // 初始化事件监听器
         function initEventListeners() {
-            // 绑定文件选择按钮
-            selectTimetableBtn.addEventListener('click', function(e) {
-                console.log('选择课表按钮被点击');
-                openFileSelectModal();
-            });
-            
-            // 绑定手动输入
-            manualFileName.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    const fileName = manualFileName.value.trim();
-                    if (fileName) {
-                        loadData(fileName, fileName);
-                    }
-                }
-            });
-            
-            // 绑定弹窗按钮
+            selectTimetableBtn.addEventListener('click', openFileSelectModal);
             closeFileModal.addEventListener('click', closeFileSelectModal);
             cancelSelect.addEventListener('click', closeFileSelectModal);
             confirmSelect.addEventListener('click', loadSelectedFile);
             refreshFileList.addEventListener('click', scanForJsonFiles);
+            
+            // 手动输入文件名
+            manualFileName.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const fileName = manualFileName.value.trim();
+                    if (fileName) {
+                        if (!fileName.toLowerCase().endsWith('.json')) {
+                            showError('请输入有效的JSON文件名，如：202409课表.json');
+                            return;
+                        }
+                        loadData(fileName, fileName);
+                    }
+                }
+            });
             
             // 移动端菜单按钮
             mobileMenuBtn.addEventListener('click', openSidebar);
@@ -1163,24 +1134,32 @@
                 searchTeachers(teacherSearch.value.trim());
             });
             
+            // 搜索框键盘事件
+            teacherSearch.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    teacherSearch.value = '';
+                    searchTeachers('');
+                } else if (e.key === 'Enter') {
+                    const firstVisible = document.querySelector('.teacher-item:not(.hidden)');
+                    if (firstVisible) {
+                        const teacherId = parseInt(firstVisible.dataset.id);
+                        selectData('teacher', teacherId);
+                        if (isMobile) closeSidebar();
+                    }
+                }
+            });
+            
             // 检测屏幕尺寸变化
             window.addEventListener('resize', checkScreenSize);
             checkScreenSize();
+            
+            // 页面加载时自动扫描文件
+            setTimeout(() => {
+                scanForJsonFiles();
+            }, 500);
         }
         
-        // 打开文件选择弹窗
-        function openFileSelectModal() {
-            console.log('打开文件选择弹窗');
-            fileSelectModal.classList.add('active');
-            scanForJsonFiles();
-        }
-        
-        // 关闭文件选择弹窗
-        function closeFileSelectModal() {
-            fileSelectModal.classList.remove('active');
-        }
-        
-        // 扫描JSON文件
+        // 扫描当前路径下的JSON文件 - 修复版
         async function scanForJsonFiles() {
             try {
                 fileList.innerHTML = `
@@ -1198,13 +1177,15 @@
                 
                 availableFiles = [];
                 
-                // 方法1: 尝试获取目录列表
+                // 方法1: 直接尝试获取目录列表
                 try {
-                    const response = await fetch(basePath);
+                    const response = await fetch(basePath, { cache: 'no-cache' });
                     if (response.ok) {
                         const text = await response.text();
+                        console.log('目录列表响应:', text.substring(0, 200));
                         
-                        // 使用正则匹配JSON文件
+                        // 使用更简单的方法解析链接
+                        const links = [];
                         const regex = /href="([^"]+\.json)"/gi;
                         let match;
                         
@@ -1213,7 +1194,6 @@
                             if (href && !href.startsWith('http') && !href.startsWith('//')) {
                                 const fileName = decodeURIComponent(href.split('/').pop());
                                 console.log('找到JSON文件:', fileName);
-                                
                                 availableFiles.push({
                                     name: fileName,
                                     path: href,
@@ -1221,13 +1201,16 @@
                                 });
                             }
                         }
+                        
+                        console.log('通过正则找到文件数:', availableFiles.length);
                     }
                 } catch (e) {
-                    console.log('目录列表获取失败:', e.message);
+                    console.log('通过目录列表获取文件失败:', e.message);
                 }
                 
-                // 方法2: 如果没找到，尝试常见文件名
+                // 方法2: 如果方法1没找到，尝试直接测试文件名
                 if (availableFiles.length === 0) {
+                    console.log('尝试方法2: 测试常见文件名');
                     const testFiles = [
                         '202409课表.json',
                         '课表.json',
@@ -1235,20 +1218,13 @@
                         'schedule.json',
                         'data.json',
                         '教师课表.json',
-                        '班级课表.json',
-                        'class.json',
-                        'teacher.json',
-                        '2024秋季课表.json',
-                        '秋季课表.json',
-                        'school_timetable.json',
-                        'timetable_data.json',
-                        '课程表.json',
-                        'class_schedule.json'
+                        '班级课表.json'
                     ];
                     
                     for (const fileName of testFiles) {
                         try {
                             const testUrl = basePath + '/' + fileName;
+                            console.log('测试文件:', testUrl);
                             const response = await fetch(testUrl, { method: 'HEAD' });
                             if (response.ok) {
                                 console.log('找到文件:', fileName);
@@ -1264,7 +1240,13 @@
                     }
                 }
                 
-                console.log('扫描完成，找到文件数:', availableFiles.length);
+                // 去重
+                availableFiles = availableFiles.filter((item, index, self) =>
+                    index === self.findIndex(t => t.name === item.name)
+                );
+                
+                console.log('最终找到文件数:', availableFiles.length, '文件:', availableFiles);
+                
                 updateFileList();
                 
             } catch (err) {
@@ -1273,7 +1255,10 @@
                     <div class="no-files-found">
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
                         <h4 style="margin: 10px 0 5px;">扫描文件失败</h4>
-                        <p>请尝试手动输入文件名</p>
+                        <p>错误: ${err.message}</p>
+                        <p style="font-size: 0.8rem; margin-top: 10px;">
+                            请在上方输入框中手动输入JSON文件名
+                        </p>
                     </div>
                 `;
             }
@@ -1290,7 +1275,8 @@
                         <h4 style="margin: 10px 0 5px;">未发现JSON文件</h4>
                         <p>当前目录下没有找到JSON文件</p>
                         <p style="font-size: 0.8rem; margin-top: 10px; color: #666;">
-                            请在输入框中手动输入JSON文件名
+                            请确保JSON文件与HTML文件在同一目录<br>
+                            或者在上方输入框中手动输入JSON文件名
                         </p>
                     </div>
                 `;
@@ -1309,32 +1295,43 @@
                 
                 fileItem.innerHTML = `
                     <div class="file-item-name">${file.name}</div>
-                    <div class="file-item-details">${file.isLocal ? '本地文件' : '远程文件'}</div>
+                    <div class="file-item-size">${file.isLocal ? '本地文件' : '远程文件'}</div>
                 `;
                 
                 fileItem.addEventListener('click', () => {
-                    // 移除其他文件的选中状态
-                    document.querySelectorAll('.file-item').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    
-                    // 设置当前选中状态
-                    fileItem.classList.add('active');
-                    selectedFileIndex = index;
-                    
-                    // 启用加载按钮
-                    confirmSelect.disabled = false;
+                    selectFile(index);
                 });
                 
                 fileList.appendChild(fileItem);
             });
             
-            // 如果只有一个文件，自动选中
-            if (availableFiles.length === 1 && selectedFileIndex === -1) {
-                selectedFileIndex = 0;
-                fileList.querySelector('.file-item').classList.add('active');
+            // 自动选择第一个文件
+            if (availableFiles.length > 0 && selectedFileIndex === -1) {
+                selectFile(0);
+            }
+        }
+        
+        // 选择文件
+        function selectFile(index) {
+            const fileItems = document.querySelectorAll('.file-item');
+            fileItems.forEach(item => item.classList.remove('active'));
+            
+            if (index >= 0 && index < availableFiles.length) {
+                fileItems[index].classList.add('active');
+                selectedFileIndex = index;
                 confirmSelect.disabled = false;
             }
+        }
+        
+        // 打开文件选择弹窗
+        function openFileSelectModal() {
+            fileSelectModal.classList.add('active');
+            scanForJsonFiles();
+        }
+        
+        // 关闭文件选择弹窗
+        function closeFileSelectModal() {
+            fileSelectModal.classList.remove('active');
         }
         
         // 加载选中的文件
@@ -1345,13 +1342,11 @@
             }
             
             const selectedFile = availableFiles[selectedFileIndex];
-            console.log('加载文件:', selectedFile.name);
-            
             closeFileSelectModal();
             loadData(selectedFile.path, selectedFile.name);
         }
         
-        // 加载数据
+        // 加载数据 - 修复编码问题
         async function loadData(url, displayName = '') {
             resetUI();
             showLoading();
@@ -1359,7 +1354,7 @@
             hideSuccess();
             
             try {
-                console.log('开始加载数据:', url);
+                console.log('开始加载课表文件:', url);
                 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -1374,15 +1369,26 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                const rawData = await response.arrayBuffer();
-                console.log('原始数据长度:', rawData.byteLength, '字节');
+                // 首先获取原始文本
+                const text = await response.text();
                 
-                // 解析JSON数据
-                const jsonData = await decodeAndParseJson(rawData, url);
-                
-                if (!jsonData) {
-                    throw new Error('JSON解析失败');
+                // 移除可能的BOM字符
+                let cleanText = text;
+                if (text.charCodeAt(0) === 0xFEFF) {
+                    cleanText = text.substring(1);
                 }
+                
+                // 尝试解析JSON
+                let data;
+                try {
+                    data = JSON.parse(cleanText);
+                } catch (parseError) {
+                    // 如果解析失败，尝试移除控制字符
+                    const cleaned = cleanText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+                    data = JSON.parse(cleaned);
+                }
+                
+                console.log('成功解析JSON数据');
                 
                 // 更新当前文件信息
                 currentFilePath = url;
@@ -1390,131 +1396,61 @@
                 currentFileName.textContent = fileName;
                 currentFileTime.textContent = new Date().toLocaleTimeString('zh-CN');
                 
-                // 处理数据
-                processJsonData(jsonData, url, fileName);
+                processJsonData(data, url, fileName);
                 
             } catch (err) {
                 console.error('加载课表失败:', err);
-                showError(`加载失败: ${err.message}<br><small>请检查JSON格式是否正确</small>`);
+                
+                // 尝试使用不同的方法
+                try {
+                    console.log('尝试使用textDecoder...');
+                    const response = await fetch(url);
+                    const buffer = await response.arrayBuffer();
+                    
+                    // 尝试不同的编码
+                    const encodings = ['utf-8', 'utf-16le', 'utf-16be', 'gbk', 'gb2312', 'gb18030'];
+                    
+                    for (const encoding of encodings) {
+                        try {
+                            const decoder = new TextDecoder(encoding);
+                            const text = decoder.decode(buffer);
+                            
+                            // 移除BOM
+                            let cleanText = text;
+                            if (text.startsWith('\uFEFF')) {
+                                cleanText = text.substring(1);
+                            }
+                            
+                            const data = JSON.parse(cleanText);
+                            console.log(`使用 ${encoding} 编码解析成功`);
+                            
+                            // 更新当前文件信息
+                            currentFilePath = url;
+                            const fileName = displayName || url.split('/').pop() || '未命名文件';
+                            currentFileName.textContent = fileName;
+                            currentFileTime.textContent = new Date().toLocaleTimeString('zh-CN');
+                            
+                            processJsonData(data, url, fileName);
+                            return;
+                        } catch (e) {
+                            // 继续尝试下一个编码
+                        }
+                    }
+                    
+                    throw new Error('无法解析JSON文件，请检查文件编码和格式');
+                } catch (fallbackError) {
+                    showError(`加载失败: ${fallbackError.message}`);
+                }
             } finally {
                 hideLoading();
             }
         }
         
-        // 解码和解析JSON数据
-        async function decodeAndParseJson(rawData, url) {
-            try {
-                // 尝试不同的编码方式
-                const encodings = [
-                    { name: 'UTF-8', decoder: 'utf-8' },
-                    { name: 'GBK', decoder: 'gbk' },
-                    { name: 'GB2312', decoder: 'gb18030' }
-                ];
-                
-                for (let i = 0; i < encodings.length; i++) {
-                    try {
-                        const decoder = new TextDecoder(encodings[i].decoder);
-                        let text = decoder.decode(rawData);
-                        
-                        console.log(`尝试 ${encodings[i].name} 编码，文本长度: ${text.length} 字符`);
-                        
-                        // 处理UTF-8 BOM
-                        if (text.charCodeAt(0) === 0xFEFF) {
-                            console.log('检测到UTF-8 BOM，已自动移除');
-                            text = text.substring(1);
-                        }
-                        
-                        // 清理JSON文本
-                        text = cleanJsonText(text);
-                        
-                        const jsonData = JSON.parse(text);
-                        console.log(`${encodings[i].name} 编码解析成功`);
-                        return jsonData;
-                    } catch (err) {
-                        console.log(`${encodings[i].name} 编码解析失败:`, err.message);
-                        continue;
-                    }
-                }
-                
-                // 如果所有标准编码都失败，尝试强制UTF-8
-                try {
-                    const text = new TextDecoder('utf-8', { fatal: false }).decode(rawData);
-                    console.log('强制UTF-8解码，文本长度:', text.length);
-                    
-                    const cleanedText = cleanJsonText(text);
-                    return JSON.parse(cleanedText);
-                } catch (utf8Err) {
-                    console.error('强制UTF-8解码失败:', utf8Err.message);
-                }
-                
-                // 如果还不行，尝试多种方法清理文本
-                try {
-                    const text = new TextDecoder('iso-8859-1', { fatal: false }).decode(rawData);
-                    console.log('尝试ISO-8859-1解码，文本长度:', text.length);
-                    
-                    const cleanedText = cleanJsonText(text);
-                    return JSON.parse(cleanedText);
-                } catch (isoErr) {
-                    console.error('ISO-8859-1解码失败:', isoErr.message);
-                }
-                
-                return null;
-                
-            } catch (err) {
-                console.error('JSON解析过程失败:', err);
-                throw new Error(`JSON解析失败: ${err.message}`);
-            }
-        }
-        
-        // 清理JSON文本
-        function cleanJsonText(text) {
-            if (!text || typeof text !== 'string') {
-                return '';
-            }
-            
-            // 移除BOM
-            if (text.charCodeAt(0) === 0xFEFF) {
-                text = text.substring(1);
-            }
-            
-            // 移除可能的控制字符
-            text = text.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/g, '');
-            
-            // 移除尾部的空白字符
-            text = text.trim();
-            
-            // 确保文本以有效的JSON字符开头
-            const firstChar = text.charAt(0);
-            if (firstChar !== '{' && firstChar !== '[') {
-                // 尝试找到第一个有效字符
-                const jsonStart = text.search(/[{[]/);
-                if (jsonStart !== -1) {
-                    text = text.substring(jsonStart);
-                } else {
-                    // 如果没有找到，尝试移除可能的前缀
-                    text = text.replace(/^[^{[]*/, '');
-                }
-            }
-            
-            // 确保文本以有效的JSON字符结尾
-            const lastChar = text.charAt(text.length - 1);
-            if (lastChar !== '}' && lastChar !== ']') {
-                const jsonEnd = text.lastIndexOf('}') > text.lastIndexOf(']') ? 
-                               text.lastIndexOf('}') : text.lastIndexOf(']');
-                if (jsonEnd !== -1) {
-                    text = text.substring(0, jsonEnd + 1);
-                } else {
-                    // 如果没有找到，尝试移除可能的后缀
-                    text = text.replace(/[^}\]]*$/, '');
-                }
-            }
-            
-            return text;
-        }
-        
         // 处理JSON数据
         function processJsonData(data, url, fileName) {
             try {
+                console.log('开始处理课表数据...');
+                
                 if (!data || typeof data !== 'object') {
                     throw new Error('JSON数据格式不正确');
                 }
@@ -1540,11 +1476,8 @@
                 
                 jsonData = data;
                 
-                // 更新文件类型指示器
-                updateFileTypeIndicator();
-                
                 // 更新显示
-                updateCurrentDataInfo();
+                updateCurrentDataInfo(classes.length, teachers.length, fileName);
                 displayClassList();
                 displayTeacherList();
                 
@@ -1555,11 +1488,7 @@
                     selectData('teacher', 0);
                 }
                 
-                const classText = classes.length > 0 ? `${classes.length}个班级` : '';
-                const teacherText = teachers.length > 0 ? `${teachers.length}位教师` : '';
-                const connector = classes.length > 0 && teachers.length > 0 ? '和' : '';
-                
-                showSuccess(`成功加载 ${classText}${connector}${teacherText} 的课表数据`);
+                showSuccess(`成功加载 ${classes.length} 个班级和 ${teachers.length} 位教师的课表数据`);
                 
             } catch (err) {
                 console.error('处理课表数据失败:', err);
@@ -1567,116 +1496,85 @@
             }
         }
         
-        // 更新文件类型指示器
-        function updateFileTypeIndicator() {
-            const hasClasses = classes.length > 0;
-            const hasTeachers = teachers.length > 0;
+        // 修改提取班级数据的函数
+function extractClasses(classesData) {
+    const classes = [];
+    
+    if (classesData && typeof classesData === 'object') {
+        Object.keys(classesData).forEach((className, index) => {
+            const classData = classesData[className];
             
-            if (hasClasses && hasTeachers) {
-                fileTypeIndicator.textContent = '班级+教师课表';
-                fileTypeIndicator.className = 'file-type-indicator file-type-both';
-            } else if (hasClasses) {
-                fileTypeIndicator.textContent = '班级课表';
-                fileTypeIndicator.className = 'file-type-indicator file-type-class';
-            } else if (hasTeachers) {
-                fileTypeIndicator.textContent = '教师课表';
-                fileTypeIndicator.className = 'file-type-indicator file-type-teacher';
-            } else {
-                fileTypeIndicator.textContent = '未知类型';
-                fileTypeIndicator.className = 'file-type-indicator';
+            // 只处理包含阿拉伯数字的班级课表
+            if (classData && classData.data && containsArabicNumbers(classData.name || className)) {
+                classes.push({
+                    id: index,
+                    name: classData.name || className,
+                    description: classData.description || '',
+                    rows: classData.rows || 0,
+                    cols: classData.cols || 0,
+                    data: classData.data || []
+                });
             }
+        });
+    }
+    
+    // 按年级和班级排序
+    classes.sort((a, b) => {
+        const gradeA = extractGrade(a.name);
+        const gradeB = extractGrade(b.name);
+        const classNumA = extractClassNumber(a.name);
+        const classNumB = extractClassNumber(b.name);
+        
+        if (gradeA !== gradeB) {
+            return gradeA - gradeB;
         }
+        return classNumA - classNumB;
+    });
+    
+    return classes;
+}
+
+// 修改提取教师数据的函数
+function extractTeachers(teachersData) {
+    const teachers = [];
+    
+    if (teachersData && typeof teachersData === 'object') {
+        Object.keys(teachersData).forEach((teacherName, index) => {
+            const teacherData = teachersData[teacherName];
+            
+            // 只处理不包含阿拉伯数字的教师课表
+            if (teacherData && teacherData.data && !containsArabicNumbers(teacherData.name || teacherName)) {
+                teachers.push({
+                    id: index,
+                    name: teacherData.name || teacherName,
+                    description: teacherData.description || '',
+                    rows: teacherData.rows || 0,
+                    cols: teacherData.cols || 0,
+                    data: teacherData.data || []
+                });
+            }
+        });
+    }
+    
+    // 按姓名拼音排序
+    teachers.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+    
+    return teachers;
+}
+
+// 新增辅助函数：检查是否包含阿拉伯数字
+function containsArabicNumbers(str) {
+    if (!str) return false;
+    return /\d/.test(str);
+}
         
         // 更新当前数据信息
-        function updateCurrentDataInfo() {
-            classCount.textContent = classes.length;
-            teacherCount.textContent = teachers.length;
-            classSectionCount.textContent = classes.length;
-            teacherSectionCount.textContent = teachers.length;
+        function updateCurrentDataInfo(classCountValue, teacherCountValue, fileName) {
+            classCount.textContent = classCountValue;
+            teacherCount.textContent = teacherCountValue;
+            classSectionCount.textContent = classCountValue;
+            teacherSectionCount.textContent = teacherCountValue;
             currentDataInfo.style.display = 'flex';
-        }
-        
-        // 提取班级数据
-        function extractClasses(classesData) {
-            const classes = [];
-            
-            if (classesData && typeof classesData === 'object') {
-                Object.keys(classesData).forEach((className, index) => {
-                    const classData = classesData[className];
-                    
-                    if (classData && classData.data) {
-                        classes.push({
-                            id: index,
-                            name: classData.name || className,
-                            description: classData.description || '',
-                            rows: classData.rows || 0,
-                            cols: classData.cols || 0,
-                            data: classData.data || []
-                        });
-                    }
-                });
-            }
-            
-            // 按年级和班级排序
-            classes.sort((a, b) => {
-                const gradeA = extractGrade(a.name);
-                const gradeB = extractGrade(b.name);
-                const classNumA = extractClassNumber(a.name);
-                const classNumB = extractClassNumber(b.name);
-                
-                if (gradeA !== gradeB) {
-                    return gradeA - gradeB;
-                }
-                return classNumA - classNumB;
-            });
-            
-            return classes;
-        }
-        
-        // 提取年级信息
-        function extractGrade(className) {
-            const match = className.match(/(初一|初二|初三|高一|高二|高三)/);
-            if (match) {
-                const gradeMap = {
-                    '初一': 1, '初二': 2, '初三': 3,
-                    '高一': 4, '高二': 5, '高三': 6
-                };
-                return gradeMap[match[0]] || 0;
-            }
-            return 0;
-        }
-        
-        // 提取班级序号
-        function extractClassNumber(className) {
-            const match = className.match(/(\d+)/);
-            return match ? parseInt(match[0]) : 0;
-        }
-        
-        // 提取教师数据
-        function extractTeachers(teachersData) {
-            const teachers = [];
-            
-            if (teachersData && typeof teachersData === 'object') {
-                Object.keys(teachersData).forEach((teacherName, index) => {
-                    const teacherData = teachersData[teacherName];
-                    
-                    if (teacherData && teacherData.data) {
-                        teachers.push({
-                            id: index,
-                            name: teacherData.name || teacherName,
-                            description: teacherData.description || '',
-                            rows: teacherData.rows || 0,
-                            cols: teacherData.cols || 0,
-                            data: teacherData.data || []
-                        });
-                    }
-                });
-            }
-            
-            // 按姓名拼音排序
-            teachers.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
-            
-            return teachers;
         }
         
         // 显示班级列表
@@ -1693,6 +1591,7 @@
                 const classItem = document.createElement('div');
                 classItem.className = 'class-item';
                 classItem.dataset.id = classData.id;
+                classItem.dataset.type = 'class';
                 
                 classItem.innerHTML = `
                     <div class="class-item-name" id="className_${classData.id}">${classData.name}</div>
@@ -1729,6 +1628,7 @@
                 const teacherItem = document.createElement('div');
                 teacherItem.className = 'teacher-item';
                 teacherItem.dataset.id = teacher.id;
+                teacherItem.dataset.type = 'teacher';
                 teacherItem.dataset.name = teacher.name.toLowerCase();
                 teacherItem.dataset.description = (teacher.description || '').toLowerCase();
                 
@@ -1773,12 +1673,55 @@
                 if (matches) {
                     item.classList.remove('hidden');
                     visibleCount++;
+                    
+                    if (searchTerm) {
+                        highlightText(item, searchTerm);
+                    } else {
+                        removeHighlight(item);
+                    }
                 } else {
                     item.classList.add('hidden');
                 }
             });
             
             visibleTeacherCount.textContent = visibleCount;
+        }
+        
+        // 高亮文本
+        function highlightText(item, searchTerm) {
+            const nameElement = item.querySelector('.teacher-item-name');
+            const descElement = item.querySelector('.teacher-item-desc');
+            
+            if (nameElement) {
+                const teacherId = parseInt(item.dataset.id);
+                const teacher = teachers.find(t => t.id === teacherId);
+                if (teacher) {
+                    const highlightedName = highlightTextInElement(teacher.name, searchTerm);
+                    nameElement.innerHTML = highlightedName;
+                }
+            }
+            
+            if (descElement) {
+                const teacherId = parseInt(item.dataset.id);
+                const teacher = teachers.find(t => t.id === teacherId);
+                if (teacher && teacher.description) {
+                    const highlightedDesc = highlightTextInElement(teacher.description, searchTerm);
+                    descElement.innerHTML = highlightedDesc;
+                }
+            }
+        }
+        
+        // 高亮显示搜索词
+        function highlightTextInElement(text, searchTerm) {
+            if (!searchTerm) return text;
+            
+            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+            return text.replace(regex, '<span class="search-highlight">$1</span>');
+        }
+        
+        // 转义正则表达式特殊字符
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
         
         // 选择数据
@@ -1800,11 +1743,13 @@
                 const selectedItem = allClassItems.find(item => parseInt(item.dataset.id) === dataId);
                 if (selectedItem) {
                     selectedItem.classList.add('active');
+                    selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             } else {
                 const selectedItem = allTeacherItems.find(item => parseInt(item.dataset.id) === dataId);
                 if (selectedItem) {
                     selectedItem.classList.add('active');
+                    selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             }
             
@@ -1847,6 +1792,8 @@
                     
                     loadingIndicator.style.display = 'none';
                     timetableContent.style.display = 'block';
+                    
+                    scrollToTimetableTop();
                     
                 } catch (err) {
                     console.error('显示课表失败:', err);
@@ -1940,35 +1887,50 @@
             teacherSidebar.classList.remove('active');
             mobileBackBtn.style.display = 'none';
             mobileMenuBtn.style.display = 'block';
+            
+            scrollToTimetableTop();
+        }
+        
+        // 滚动到课表顶部
+        function scrollToTimetableTop() {
+            const timetableContainer = document.querySelector('.timetable-container');
+            if (timetableContainer) {
+                timetableContainer.scrollTop = 0;
+            }
         }
         
         // 更新移动端标题
         function updateMobileTitle(dataName) {
             if (isMobile && dataName) {
                 mobileTitle.textContent = dataName;
+                mobileTitle.title = dataName;
             } else {
                 mobileTitle.textContent = '课表查询系统';
             }
         }
         
-        // 工具函数
+        // 显示加载
         function showLoading() {
             loadingIndicator.style.display = 'flex';
         }
         
+        // 隐藏加载
         function hideLoading() {
             loadingIndicator.style.display = 'none';
         }
         
+        // 显示错误
         function showError(message) {
-            errorText.innerHTML = message;
+            errorText.textContent = message;
             errorMessage.style.display = 'block';
         }
         
+        // 隐藏错误
         function hideError() {
             errorMessage.style.display = 'none';
         }
         
+        // 显示成功
         function showSuccess(message) {
             successText.textContent = message;
             successMessage.style.display = 'block';
@@ -1977,6 +1939,7 @@
             }, 3000);
         }
         
+        // 隐藏成功
         function hideSuccess() {
             successMessage.style.display = 'none';
         }
@@ -2015,12 +1978,8 @@
         
         // 页面加载完成
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，初始化事件监听器...');
             initEventListeners();
-            
-            // 页面加载时自动扫描一次
-            setTimeout(() => {
-                console.log('页面加载完成，准备初始化');
-            }, 100);
         });
     </script>
 </body>
