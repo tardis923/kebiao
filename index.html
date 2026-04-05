@@ -6,7 +6,6 @@
     <title>教师班级课表综合查询系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 保持原有样式不变 */
         * {
             margin: 0;
             padding: 0;
@@ -299,30 +298,6 @@
             margin-top: 3px;
         }
         
-        .file-type-tag {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            margin-left: 5px;
-        }
-        
-        .file-type-class {
-            background: rgba(26, 95, 122, 0.2);
-            color: #1a5f7a;
-        }
-        
-        .file-type-teacher {
-            background: rgba(42, 157, 143, 0.2);
-            color: #2a9d8f;
-        }
-        
-        .file-type-both {
-            background: linear-gradient(90deg, rgba(26, 95, 122, 0.2), rgba(42, 157, 143, 0.2));
-            color: #1a5f7a;
-        }
-        
         .file-item.active .file-item-details {
             color: rgba(255, 255, 255, 0.9);
         }
@@ -368,7 +343,7 @@
             background: #e0e0e0;
         }
         
-        /* 侧边栏 */
+        /* 侧边栏 - 修复布局 */
         .teacher-sidebar {
             width: 300px;
             background: #f8fcfb;
@@ -378,6 +353,7 @@
         }
         
         .sidebar-section {
+            flex: none;
             border-bottom: 1px solid #e0e0e0;
         }
         
@@ -976,7 +952,7 @@
         </div>
         
         <div class="content">
-            <!-- 侧边栏 -->
+            <!-- 侧边栏 - 保持班级在上、教师在下的布局 -->
             <div class="teacher-sidebar" id="teacherSidebar">
                 <div class="sidebar-section">
                     <div class="section-header class-section">
@@ -1153,13 +1129,13 @@
         
         // 初始化事件监听器
         function initEventListeners() {
-            selectTimetableBtn.addEventListener('click', openFileSelectModal);
-            closeFileModal.addEventListener('click', closeFileSelectModal);
-            cancelSelect.addEventListener('click', closeFileSelectModal);
-            confirmSelect.addEventListener('click', loadSelectedFile);
-            refreshFileList.addEventListener('click', scanForJsonFiles);
+            // 绑定文件选择按钮
+            selectTimetableBtn.addEventListener('click', function(e) {
+                console.log('选择课表按钮被点击');
+                openFileSelectModal();
+            });
             
-            // 手动输入文件名
+            // 绑定手动输入
             manualFileName.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const fileName = manualFileName.value.trim();
@@ -1172,6 +1148,12 @@
                     }
                 }
             });
+            
+            // 绑定弹窗按钮
+            closeFileModal.addEventListener('click', closeFileSelectModal);
+            cancelSelect.addEventListener('click', closeFileSelectModal);
+            confirmSelect.addEventListener('click', loadSelectedFile);
+            refreshFileList.addEventListener('click', scanForJsonFiles);
             
             // 移动端菜单按钮
             mobileMenuBtn.addEventListener('click', openSidebar);
@@ -1187,14 +1169,21 @@
             // 检测屏幕尺寸变化
             window.addEventListener('resize', checkScreenSize);
             checkScreenSize();
-            
-            // 页面加载时自动扫描文件
-            setTimeout(() => {
-                scanForJsonFiles();
-            }, 500);
         }
         
-        // 扫描当前路径下的JSON文件
+        // 打开文件选择弹窗
+        function openFileSelectModal() {
+            console.log('打开文件选择弹窗');
+            fileSelectModal.classList.add('active');
+            scanForJsonFiles();
+        }
+        
+        // 关闭文件选择弹窗
+        function closeFileSelectModal() {
+            fileSelectModal.classList.remove('active');
+        }
+        
+        // 扫描JSON文件
         async function scanForJsonFiles() {
             try {
                 fileList.innerHTML = `
@@ -1212,14 +1201,13 @@
                 
                 availableFiles = [];
                 
-                // 方法1: 直接尝试获取目录列表
+                // 方法1: 尝试获取目录列表
                 try {
-                    const response = await fetch(basePath, { cache: 'no-cache' });
+                    const response = await fetch(basePath);
                     if (response.ok) {
                         const text = await response.text();
-                        console.log('目录列表响应:', text.substring(0, 200));
                         
-                        // 使用正则表达式解析链接
+                        // 使用正则匹配JSON文件
                         const regex = /href="([^"]+\.json)"/gi;
                         let match;
                         
@@ -1229,19 +1217,19 @@
                                 const fileName = decodeURIComponent(href.split('/').pop());
                                 console.log('找到JSON文件:', fileName);
                                 
-                                // 获取文件类型信息
-                                const fileInfo = await getFileTypeInfo(href, fileName);
-                                availableFiles.push(fileInfo);
+                                availableFiles.push({
+                                    name: fileName,
+                                    path: href,
+                                    isLocal: true
+                                });
                             }
                         }
-                        
-                        console.log('找到文件数:', availableFiles.length);
                     }
                 } catch (e) {
-                    console.log('通过目录列表获取文件失败:', e.message);
+                    console.log('目录列表获取失败:', e.message);
                 }
                 
-                // 方法2: 如果方法1没找到，尝试直接测试文件名
+                // 方法2: 如果没找到，尝试常见文件名
                 if (availableFiles.length === 0) {
                     const testFiles = [
                         '202409课表.json',
@@ -1250,15 +1238,22 @@
                         'schedule.json',
                         'data.json',
                         '教师课表.json',
-                        '班级课表.json'
+                        '班级课表.json',
+                        'class.json',
+                        'teacher.json'
                     ];
                     
                     for (const fileName of testFiles) {
                         try {
                             const testUrl = basePath + '/' + fileName;
-                            const fileInfo = await getFileTypeInfo(testUrl, fileName);
-                            if (fileInfo) {
-                                availableFiles.push(fileInfo);
+                            const response = await fetch(testUrl, { method: 'HEAD' });
+                            if (response.ok) {
+                                console.log('找到文件:', fileName);
+                                availableFiles.push({
+                                    name: fileName,
+                                    path: testUrl,
+                                    isLocal: true
+                                });
                             }
                         } catch (e) {
                             // 文件不存在，忽略
@@ -1266,13 +1261,7 @@
                     }
                 }
                 
-                // 去重
-                availableFiles = availableFiles.filter((item, index, self) =>
-                    index === self.findIndex(t => t.name === item.name)
-                );
-                
-                console.log('最终找到文件数:', availableFiles.length, '文件:', availableFiles);
-                
+                console.log('扫描完成，找到文件数:', availableFiles.length);
                 updateFileList();
                 
             } catch (err) {
@@ -1281,71 +1270,9 @@
                     <div class="no-files-found">
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
                         <h4 style="margin: 10px 0 5px;">扫描文件失败</h4>
-                        <p>错误: ${err.message}</p>
-                        <p style="font-size: 0.8rem; margin-top: 10px;">
-                            请在上方输入框中手动输入JSON文件名
-                        </p>
+                        <p>请尝试手动输入文件名</p>
                     </div>
                 `;
-            }
-        }
-        
-        // 获取文件类型信息
-        async function getFileTypeInfo(filePath, fileName) {
-            try {
-                const response = await fetch(filePath, { method: 'HEAD' });
-                if (!response.ok) {
-                    return null;
-                }
-                
-                // 尝试读取文件的前几KB来检测类型
-                const dataResponse = await fetch(filePath);
-                const text = await dataResponse.text();
-                
-                // 分析文件内容
-                let fileType = 'unknown';
-                let classCount = 0;
-                let teacherCount = 0;
-                
-                try {
-                    const data = JSON.parse(text);
-                    
-                    // 检查是否包含班级数据
-                    if (data.classes && typeof data.classes === 'object') {
-                        classCount = Object.keys(data.classes).length;
-                        fileType = 'class';
-                    }
-                    
-                    // 检查是否包含教师数据
-                    if (data.teachers && typeof data.teachers === 'object') {
-                        teacherCount = Object.keys(data.teachers).length;
-                        if (fileType === 'class') {
-                            fileType = 'both'; // 既有班级又有教师
-                        } else {
-                            fileType = 'teacher';
-                        }
-                    }
-                } catch (e) {
-                    console.log('文件解析失败:', e.message);
-                }
-                
-                return {
-                    name: fileName,
-                    path: filePath,
-                    isLocal: true,
-                    type: fileType,
-                    classCount: classCount,
-                    teacherCount: teacherCount
-                };
-            } catch (e) {
-                return {
-                    name: fileName,
-                    path: filePath,
-                    isLocal: true,
-                    type: 'unknown',
-                    classCount: 0,
-                    teacherCount: 0
-                };
             }
         }
         
@@ -1360,8 +1287,7 @@
                         <h4 style="margin: 10px 0 5px;">未发现JSON文件</h4>
                         <p>当前目录下没有找到JSON文件</p>
                         <p style="font-size: 0.8rem; margin-top: 10px; color: #666;">
-                            请确保JSON文件与HTML文件在同一目录<br>
-                            或者在上方输入框中手动输入JSON文件名
+                            请在输入框中手动输入JSON文件名
                         </p>
                     </div>
                 `;
@@ -1378,60 +1304,32 @@
                     fileItem.classList.add('active');
                 }
                 
-                // 生成类型标签
-                let typeTag = '';
-                let typeText = '';
-                
-                if (file.type === 'class') {
-                    typeTag = '<span class="file-type-tag file-type-class">班级课表</span>';
-                    typeText = '班级课表';
-                } else if (file.type === 'teacher') {
-                    typeTag = '<span class="file-type-tag file-type-teacher">教师课表</span>';
-                    typeText = '教师课表';
-                } else if (file.type === 'both') {
-                    typeTag = '<span class="file-type-tag file-type-both">班级+教师</span>';
-                    typeText = '班级+教师课表';
-                } else {
-                    typeTag = '<span class="file-type-tag">未知类型</span>';
-                    typeText = '未知类型';
-                }
-                
-                // 生成详情信息
-                let detailsText = file.isLocal ? '本地文件' : '远程文件';
-                if (file.type === 'class' && file.classCount > 0) {
-                    detailsText += ` | ${file.classCount}个班级`;
-                } else if (file.type === 'teacher' && file.teacherCount > 0) {
-                    detailsText += ` | ${file.teacherCount}位教师`;
-                } else if (file.type === 'both') {
-                    detailsText += ` | ${file.classCount}个班级 ${file.teacherCount}位教师`;
-                }
-                
                 fileItem.innerHTML = `
-                    <div class="file-item-name">${file.name} ${typeTag}</div>
-                    <div class="file-item-details">${detailsText}</div>
+                    <div class="file-item-name">${file.name}</div>
+                    <div class="file-item-details">${file.isLocal ? '本地文件' : '远程文件'}</div>
                 `;
                 
                 fileItem.addEventListener('click', () => {
-                    selectFile(index);
+                    // 移除其他文件的选中状态
+                    document.querySelectorAll('.file-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // 设置当前选中状态
+                    fileItem.classList.add('active');
+                    selectedFileIndex = index;
+                    
+                    // 启用加载按钮
+                    confirmSelect.disabled = false;
                 });
                 
                 fileList.appendChild(fileItem);
             });
             
-            // 自动选择第一个文件
-            if (availableFiles.length > 0 && selectedFileIndex === -1) {
-                selectFile(0);
-            }
-        }
-        
-        // 选择文件
-        function selectFile(index) {
-            const fileItems = document.querySelectorAll('.file-item');
-            fileItems.forEach(item => item.classList.remove('active'));
-            
-            if (index >= 0 && index < availableFiles.length) {
-                fileItems[index].classList.add('active');
-                selectedFileIndex = index;
+            // 如果只有一个文件，自动选中
+            if (availableFiles.length === 1 && selectedFileIndex === -1) {
+                selectedFileIndex = 0;
+                fileList.querySelector('.file-item').classList.add('active');
                 confirmSelect.disabled = false;
             }
         }
@@ -1444,6 +1342,8 @@
             }
             
             const selectedFile = availableFiles[selectedFileIndex];
+            console.log('加载文件:', selectedFile.name);
+            
             closeFileSelectModal();
             loadData(selectedFile.path, selectedFile.name);
         }
@@ -1456,8 +1356,6 @@
             hideSuccess();
             
             try {
-                console.log('开始加载课表文件:', url);
-                
                 const response = await fetch(url, {
                     method: 'GET',
                     headers: {
@@ -1471,18 +1369,16 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                // 首先获取原始文本
                 const text = await response.text();
-                
-                // 移除可能的BOM字符
                 let cleanText = text;
+                
+                // 移除BOM
                 if (text.charCodeAt(0) === 0xFEFF) {
                     cleanText = text.substring(1);
                 }
                 
-                // 解析JSON
                 const data = JSON.parse(cleanText);
-                console.log('成功解析JSON数据');
+                console.log('JSON解析成功');
                 
                 // 更新当前文件信息
                 currentFilePath = url;
@@ -1490,9 +1386,7 @@
                 currentFileName.textContent = fileName;
                 currentFileTime.textContent = new Date().toLocaleTimeString('zh-CN');
                 
-                // 更新文件类型指示器
-                updateFileTypeIndicator(data);
-                
+                // 处理数据
                 processJsonData(data, url, fileName);
                 
             } catch (err) {
@@ -1503,31 +1397,9 @@
             }
         }
         
-        // 更新文件类型指示器
-        function updateFileTypeIndicator(data) {
-            const hasClasses = data.classes && typeof data.classes === 'object' && Object.keys(data.classes).length > 0;
-            const hasTeachers = data.teachers && typeof data.teachers === 'object' && Object.keys(data.teachers).length > 0;
-            
-            if (hasClasses && hasTeachers) {
-                fileTypeIndicator.textContent = '班级+教师课表';
-                fileTypeIndicator.className = 'file-type-indicator file-type-both';
-            } else if (hasClasses) {
-                fileTypeIndicator.textContent = '班级课表';
-                fileTypeIndicator.className = 'file-type-indicator file-type-class';
-            } else if (hasTeachers) {
-                fileTypeIndicator.textContent = '教师课表';
-                fileTypeIndicator.className = 'file-type-indicator file-type-teacher';
-            } else {
-                fileTypeIndicator.textContent = '未知类型';
-                fileTypeIndicator.className = 'file-type-indicator';
-            }
-        }
-        
         // 处理JSON数据
         function processJsonData(data, url, fileName) {
             try {
-                console.log('开始处理课表数据...');
-                
                 if (!data || typeof data !== 'object') {
                     throw new Error('JSON数据格式不正确');
                 }
@@ -1553,8 +1425,11 @@
                 
                 jsonData = data;
                 
+                // 更新文件类型指示器
+                updateFileTypeIndicator();
+                
                 // 更新显示
-                updateCurrentDataInfo(classes.length, teachers.length, fileName);
+                updateCurrentDataInfo();
                 displayClassList();
                 displayTeacherList();
                 
@@ -1575,6 +1450,35 @@
                 console.error('处理课表数据失败:', err);
                 showError(`处理课表数据失败: ${err.message}`);
             }
+        }
+        
+        // 更新文件类型指示器
+        function updateFileTypeIndicator() {
+            const hasClasses = classes.length > 0;
+            const hasTeachers = teachers.length > 0;
+            
+            if (hasClasses && hasTeachers) {
+                fileTypeIndicator.textContent = '班级+教师课表';
+                fileTypeIndicator.className = 'file-type-indicator file-type-both';
+            } else if (hasClasses) {
+                fileTypeIndicator.textContent = '班级课表';
+                fileTypeIndicator.className = 'file-type-indicator file-type-class';
+            } else if (hasTeachers) {
+                fileTypeIndicator.textContent = '教师课表';
+                fileTypeIndicator.className = 'file-type-indicator file-type-teacher';
+            } else {
+                fileTypeIndicator.textContent = '未知类型';
+                fileTypeIndicator.className = 'file-type-indicator';
+            }
+        }
+        
+        // 更新当前数据信息
+        function updateCurrentDataInfo() {
+            classCount.textContent = classes.length;
+            teacherCount.textContent = teachers.length;
+            classSectionCount.textContent = classes.length;
+            teacherSectionCount.textContent = teachers.length;
+            currentDataInfo.style.display = 'flex';
         }
         
         // 提取班级数据
@@ -1660,15 +1564,6 @@
             return teachers;
         }
         
-        // 更新当前数据信息
-        function updateCurrentDataInfo(classCountValue, teacherCountValue, fileName) {
-            classCount.textContent = classCountValue;
-            teacherCount.textContent = teacherCountValue;
-            classSectionCount.textContent = classCountValue;
-            teacherSectionCount.textContent = teacherCountValue;
-            currentDataInfo.style.display = 'flex';
-        }
-        
         // 显示班级列表
         function displayClassList() {
             classListContainer.innerHTML = '';
@@ -1683,7 +1578,6 @@
                 const classItem = document.createElement('div');
                 classItem.className = 'class-item';
                 classItem.dataset.id = classData.id;
-                classItem.dataset.type = 'class';
                 
                 classItem.innerHTML = `
                     <div class="class-item-name" id="className_${classData.id}">${classData.name}</div>
@@ -1720,7 +1614,6 @@
                 const teacherItem = document.createElement('div');
                 teacherItem.className = 'teacher-item';
                 teacherItem.dataset.id = teacher.id;
-                teacherItem.dataset.type = 'teacher';
                 teacherItem.dataset.name = teacher.name.toLowerCase();
                 teacherItem.dataset.description = (teacher.description || '').toLowerCase();
                 
@@ -1792,13 +1685,11 @@
                 const selectedItem = allClassItems.find(item => parseInt(item.dataset.id) === dataId);
                 if (selectedItem) {
                     selectedItem.classList.add('active');
-                    selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             } else {
                 const selectedItem = allTeacherItems.find(item => parseInt(item.dataset.id) === dataId);
                 if (selectedItem) {
                     selectedItem.classList.add('active');
-                    selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
             }
             
@@ -1841,8 +1732,6 @@
                     
                     loadingIndicator.style.display = 'none';
                     timetableContent.style.display = 'block';
-                    
-                    scrollToTimetableTop();
                     
                 } catch (err) {
                     console.error('显示课表失败:', err);
@@ -1936,50 +1825,35 @@
             teacherSidebar.classList.remove('active');
             mobileBackBtn.style.display = 'none';
             mobileMenuBtn.style.display = 'block';
-            
-            scrollToTimetableTop();
-        }
-        
-        // 滚动到课表顶部
-        function scrollToTimetableTop() {
-            const timetableContainer = document.querySelector('.timetable-container');
-            if (timetableContainer) {
-                timetableContainer.scrollTop = 0;
-            }
         }
         
         // 更新移动端标题
         function updateMobileTitle(dataName) {
             if (isMobile && dataName) {
                 mobileTitle.textContent = dataName;
-                mobileTitle.title = dataName;
             } else {
                 mobileTitle.textContent = '课表查询系统';
             }
         }
         
-        // 显示加载
+        // 工具函数
         function showLoading() {
             loadingIndicator.style.display = 'flex';
         }
         
-        // 隐藏加载
         function hideLoading() {
             loadingIndicator.style.display = 'none';
         }
         
-        // 显示错误
         function showError(message) {
             errorText.textContent = message;
             errorMessage.style.display = 'block';
         }
         
-        // 隐藏错误
         function hideError() {
             errorMessage.style.display = 'none';
         }
         
-        // 显示成功
         function showSuccess(message) {
             successText.textContent = message;
             successMessage.style.display = 'block';
@@ -1988,7 +1862,6 @@
             }, 3000);
         }
         
-        // 隐藏成功
         function hideSuccess() {
             successMessage.style.display = 'none';
         }
@@ -2027,7 +1900,6 @@
         
         // 页面加载完成
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('页面加载完成，初始化事件监听器...');
             initEventListeners();
         });
     </script>
