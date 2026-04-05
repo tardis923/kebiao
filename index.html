@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>教师课表查询系统 - 多学年支持</title>
+    <title>教师课表查询系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -88,6 +88,7 @@
             opacity: 0.9;
         }
         
+        /* 控制面板 - 移动端优化 */
         .control-panel {
             padding: 20px 15px;
             background: #f8fcfb;
@@ -103,14 +104,16 @@
         .data-source-btn {
             display: flex;
             align-items: center;
+            justify-content: center;
             background: #2a9d8f;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 6px;
             border: none;
             cursor: pointer;
             font-size: 1rem;
             white-space: nowrap;
+            min-height: 44px; /* 移动端最小触摸目标 */
         }
         
         .data-source-btn:hover {
@@ -124,7 +127,7 @@
         
         .data-source-input {
             flex: 1;
-            padding: 10px 15px;
+            padding: 12px 15px;
             border: 1px solid #c8e6e1;
             border-radius: 6px;
             font-size: 1rem;
@@ -136,7 +139,7 @@
             align-items: center;
             gap: 10px;
             margin-top: 10px;
-            padding: 8px 12px;
+            padding: 10px 12px;
             background: #e8f6f3;
             border-radius: 6px;
             border-left: 4px solid #2a9d8f;
@@ -164,6 +167,8 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            padding: 5px;
+            min-height: 30px; /* 移动端最小触摸目标 */
         }
         
         .content {
@@ -219,6 +224,7 @@
             color: white;
             font-size: 1.2rem;
             cursor: pointer;
+            padding: 5px;
         }
         
         .modal-body {
@@ -286,12 +292,13 @@
         
         .modal-btn {
             flex: 1;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.95rem;
             font-weight: 500;
+            min-height: 44px; /* 移动端最小触摸目标 */
         }
         
         .modal-btn.primary {
@@ -337,6 +344,7 @@
             color: white;
             cursor: pointer;
             font-size: 1.2rem;
+            padding: 5px;
         }
         
         .search-container {
@@ -359,7 +367,7 @@
         
         .search-input {
             width: 100%;
-            padding: 10px 10px 10px 40px;
+            padding: 12px 12px 12px 40px;
             border: 1px solid #c8e6e1;
             border-radius: 6px;
             font-size: 0.95rem;
@@ -474,6 +482,7 @@
             cursor: pointer;
             font-size: 0.9rem;
             white-space: nowrap;
+            min-height: 40px; /* 移动端最小触摸目标 */
         }
         
         .timetable-container {
@@ -614,7 +623,7 @@
             border-radius: 3px;
         }
         
-        /* 移动端特定样式 */
+        /* 移动端特定样式 - 优化按钮可见性 */
         @media (max-width: 768px) {
             .mobile-header {
                 display: block;
@@ -638,11 +647,17 @@
                 display: none;
             }
             
+            /* 为控制面板留出顶部空间 */
+            .control-panel {
+                padding-top: 80px; /* 为顶部栏和按钮留出空间 */
+                padding-bottom: 20px;
+            }
+            
             .content {
                 flex-direction: column;
                 height: auto;
-                min-height: calc(100vh - 60px);
-                margin-top: 60px;
+                min-height: calc(100vh - 200px);
+                margin-top: 0;
             }
             
             .teacher-sidebar {
@@ -683,15 +698,10 @@
             
             .timetable-container {
                 padding: 10px;
-                height: calc(100vh - 180px);
+                height: calc(100vh - 250px);
             }
             
-            .excel-table-8x6 th,
-            .excel-table-8x6 td {
-                padding: 6px 4px;
-                font-size: 0.8rem;
-            }
-            
+            /* 优化数据源区域在移动端的显示 */
             .data-source-area {
                 flex-direction: column;
             }
@@ -699,10 +709,31 @@
             .data-source-btn {
                 width: 100%;
                 justify-content: center;
+                font-size: 1.1rem;
+                padding: 15px 20px;
+            }
+            
+            .data-source-btn i {
+                margin-right: 8px;
+            }
+            
+            .data-source-input {
+                padding: 15px;
+                font-size: 1rem;
+            }
+            
+            .current-data-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .refresh-btn {
+                align-self: flex-end;
             }
             
             .control-panel {
-                padding: 15px 10px;
+                padding: 20px 15px 15px 15px;
             }
             
             footer {
@@ -731,6 +762,27 @@
             .modal-body {
                 max-height: 65vh;
             }
+            
+            .modal-btn {
+                padding: 15px 20px;
+                font-size: 1rem;
+            }
+            
+            /* 确保按钮不会被虚拟键盘遮挡 */
+            .modal-actions {
+                position: sticky;
+                bottom: 0;
+                background: white;
+                padding-top: 10px;
+                border-top: 1px solid #e0e0e0;
+                margin-top: 0;
+                padding-bottom: 5px;
+            }
+            
+            /* 移动端输入框优化 */
+            input, button, .teacher-item, .file-item {
+                -webkit-tap-highlight-color: transparent;
+            }
         }
         
         @media (max-width: 480px) {
@@ -750,7 +802,7 @@
             
             .timetable-container {
                 padding: 8px;
-                height: calc(100vh - 170px);
+                height: calc(100vh - 240px);
             }
             
             .teacher-item {
@@ -759,6 +811,87 @@
             
             .teacher-item-name {
                 font-size: 0.9rem;
+            }
+            
+            .data-source-btn {
+                padding: 12px 15px;
+                font-size: 1rem;
+            }
+            
+            .control-panel {
+                padding-top: 70px;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            .excel-table-8x6 th,
+            .excel-table-8x6 td {
+                padding: 4px 2px;
+                font-size: 0.7rem;
+            }
+            
+            .teacher-name {
+                font-size: 0.95rem;
+            }
+            
+            .search-input {
+                font-size: 0.9rem;
+                padding-left: 35px;
+            }
+            
+            .data-source-btn {
+                font-size: 0.95rem;
+                padding: 10px 12px;
+            }
+            
+            .data-source-btn i {
+                margin-right: 5px;
+            }
+        }
+        
+        /* 横屏优化 */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .control-panel {
+                padding-top: 60px;
+            }
+            
+            .content {
+                height: calc(100vh - 60px);
+            }
+            
+            .teacher-sidebar {
+                width: 50%;
+                height: calc(100vh - 60px);
+            }
+            
+            .timetable-container {
+                height: calc(100vh - 200px);
+            }
+            
+            .excel-table-8x6 th,
+            .excel-table-8x6 td {
+                padding: 5px 4px;
+                font-size: 0.8rem;
+            }
+            
+            .data-source-area {
+                flex-direction: row;
+            }
+            
+            .data-source-btn {
+                width: auto;
+                min-width: 150px;
+            }
+        }
+        
+        /* 超高屏幕优化 */
+        @media (max-height: 600px) and (max-width: 768px) {
+            .control-panel {
+                padding-top: 60px;
+            }
+            
+            .timetable-container {
+                height: calc(100vh - 220px);
             }
         }
     </style>
@@ -816,7 +949,7 @@
                     <i class="fas fa-calendar-alt"></i> 选择加载课表
                 </button>
                 <input type="text" class="data-source-input" id="customDataSource" 
-                       placeholder="或手动输入JSON文件URL" disabled>
+                       placeholder="或手动输入JSON文件URL" disabled style="display: none;">
             </div>
             
             <div class="current-data-info" id="currentDataInfo" style="display: none;">
@@ -907,7 +1040,7 @@
         </div>
         
         <footer>
-            <p>© 2023 教师课表查询系统 | 支持多学年课表切换，轻松查询不同学年数据</p>
+            <p>© 2026 教师课表查询系统 | 支持多学年课表切换，轻松查询不同学年数据</p>
         </footer>
     </div>
 
@@ -1046,7 +1179,9 @@
             });
             
             // 页面加载时自动扫描文件
-            scanForJsonFiles();
+            setTimeout(() => {
+                scanForJsonFiles();
+            }, 500);
         }
         
         // 扫描当前路径下的JSON文件
@@ -1099,9 +1234,13 @@
                     '教师课表_2023-2024.json',
                     '教师课表_2022-2023.json',
                     '教师课表_2021-2022.json',
+                    '教师课表_2020-2021.json',
+                    '教师课表_2019-2020.json',
                     'timetable.json',
                     'schedule.json',
-                    'data.json'
+                    'data.json',
+                    '课表.json',
+                    'teacher_timetable.json'
                 ];
                 
                 // 测试每个文件是否存在
@@ -1291,9 +1430,12 @@
             if (isMobile) {
                 document.body.classList.add('mobile-mode');
                 mobileBackBtn.style.display = 'block';
+                // 在移动端隐藏输入框
+                customDataSource.style.display = 'none';
             } else {
                 document.body.classList.remove('mobile-mode');
                 mobileBackBtn.style.display = 'none';
+                customDataSource.style.display = 'block';
                 closeSidebar();
             }
         }
