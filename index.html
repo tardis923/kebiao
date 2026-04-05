@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教师课表查询系统 - Excel格式</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <title>教师课表查询系统 - 支持课程+班级显示</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -63,11 +62,11 @@
             align-items: center;
             background: #2a9d8f;
             color: white;
-            padding: 8px 15px;
+            padding: 10px 20px;
             border-radius: 6px;
             border: none;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 1rem;
         }
         
         .data-source-btn:hover {
@@ -76,9 +75,10 @@
         
         .data-source-input {
             flex: 1;
-            padding: 8px 12px;
+            padding: 10px 15px;
             border: 1px solid #c8e6e1;
             border-radius: 6px;
+            font-size: 1rem;
         }
         
         .content {
@@ -188,9 +188,6 @@
             font-weight: 600;
             border: 1px solid #2a9d8f;
             min-width: 100px;
-            position: sticky;
-            top: 0;
-            z-index: 10;
         }
         
         .excel-table-8x6 td {
@@ -215,9 +212,6 @@
             color: white;
             font-weight: bold;
             border: 1px solid #2a9d8f;
-            position: sticky;
-            left: 0;
-            z-index: 5;
             min-width: 80px;
         }
         
@@ -225,25 +219,42 @@
             background: #1a5f7a;
             color: white;
             font-weight: bold;
-            position: sticky;
-            top: 0;
-            left: 0;
-            z-index: 20;
         }
         
-        .excel-table-8x6 .header-cell {
-            background: #1a5f7a;
-            color: white;
+        /* 课程班级单元格样式 */
+        .course-cell {
+            font-weight: 500;
+            line-height: 1.4;
         }
         
-        .excel-table-8x6 .time-header {
-            background: #2a9d8f;
-            color: white;
+        .course-cell .course-name {
+            display: block;
+            font-weight: bold;
+            font-size: 0.95rem;
         }
         
-        .excel-table-8x6 .empty-cell {
-            background: #f5f5f5;
+        .course-cell .class-info {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 3px;
         }
+        
+        .course-cell.language { background: #e3f2fd; }
+        .course-cell.math { background: #f3e5f5; }
+        .course-cell.english { background: #e8f5e8; }
+        .course-cell.physics { background: #fff3e0; }
+        .course-cell.chemistry { background: #fce4ec; }
+        .course-cell.sports { background: #e8eaf6; }
+        .course-cell.music { background: #f3e5f5; }
+        .course-cell.art { background: #e0f2f1; }
+        .course-cell.history { background: #fff8e1; }
+        .course-cell.geography { background: #f1f8e9; }
+        .course-cell.self-study { background: #f5f5f5; }
+        .course-cell.activity { background: #e8f5e8; }
+        .course-cell.meeting { background: #e3f2fd; }
+        .course-cell.experiment { background: #fce4ec; }
+        .course-cell.tutoring { background: #f1f8e9; }
         
         .loading {
             display: flex;
@@ -269,6 +280,15 @@
             color: #7f8c8d;
         }
         
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #28a745;
+        }
+        
         footer {
             padding: 15px 30px;
             background: #f8fcfb;
@@ -278,44 +298,46 @@
             font-size: 0.85rem;
         }
         
-        .course-cell {
-            font-weight: 500;
-            background: #fff;
+        .status-area {
+            min-height: 60px;
         }
         
-        .course-cell.subject-language { background: #e3f2fd; }
-        .course-cell.subject-math { background: #f3e5f5; }
-        .course-cell.subject-english { background: #e8f5e8; }
-        .course-cell.subject-physics { background: #fff3e0; }
-        .course-cell.subject-chemistry { background: #fce4ec; }
-        .course-cell.subject-sports { background: #e8eaf6; }
-        .course-cell.subject-music { background: #f3e5f5; }
-        .course-cell.subject-art { background: #e0f2f1; }
-        .course-cell.subject-history { background: #fff8e1; }
-        .course-cell.subject-geography { background: #f1f8e9; }
-        .course-cell.subject-self-study { background: #f5f5f5; }
-        .course-cell.subject-activity { background: #e8f5e8; }
+        .json-format-example {
+            background: #f8fcfb;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表查询系统</h1>
-            <p class="subtitle">Excel格式课表 - 8行6列标准布局</p>
+            <p class="subtitle">支持课程+班级显示格式</p>
         </header>
         
         <div class="control-panel">
             <div class="data-source-area">
                 <button class="data-source-btn" id="loadJsonBtn">
-                    <i class="fas fa-file-code"></i> 加载JSON
+                    <i class="fas fa-file-code"></i> 加载JSON文件
                 </button>
                 <input type="text" class="data-source-input" id="customDataSource" 
                        placeholder="输入JSON文件URL (默认: 教师课表.json)" 
                        value="教师课表.json">
             </div>
             
-            <div id="errorMessage" class="error" style="display: none;">
-                <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+            <div class="status-area">
+                <div id="errorMessage" class="error" style="display: none;">
+                    <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+                </div>
+                
+                <div id="successMessage" class="success" style="display: none;">
+                    <i class="fas fa-check-circle"></i> <span id="successText"></span>
+                </div>
             </div>
         </div>
         
@@ -356,8 +378,26 @@
             </div>
         </div>
         
+        <div class="control-panel" style="border-top: 1px solid #e0e0e0; border-bottom: none;">
+            <h3><i class="fas fa-info-circle"></i> JSON文件格式说明</h3>
+            <p>为了让课程和班级在同一单元格显示，JSON格式支持两种形式：</p>
+            
+            <div class="json-format-example">
+格式1: 字符串形式 (简单)
+"语文<br>高一一班"
+
+格式2: 对象形式 (推荐)
+{
+  "course": "语文",
+  "class": "高一一班"
+}
+            </div>
+            
+            <p>支持8行6列的Excel格式，第一行表头，第一列行标题</p>
+        </div>
+        
         <footer>
-            <p>© 2023 教师课表查询系统 | 8行6列标准Excel格式课表</p>
+            <p>© 2023 教师课表查询系统 | 支持课程+班级显示格式</p>
         </footer>
     </div>
 
@@ -367,6 +407,8 @@
         const customDataSource = document.getElementById('customDataSource');
         const errorMessage = document.getElementById('errorMessage');
         const errorText = document.getElementById('errorText');
+        const successMessage = document.getElementById('successMessage');
+        const successText = document.getElementById('successText');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const teacherCountDisplay = document.getElementById('teacherCountDisplay');
         const teacherList = document.getElementById('teacherList');
@@ -386,22 +428,22 @@
         
         // 课程颜色映射
         const courseColors = {
-            '语文': 'subject-language',
-            '数学': 'subject-math',
-            '英语': 'subject-english',
-            '物理': 'subject-physics',
-            '化学': 'subject-chemistry',
-            '体育': 'subject-sports',
-            '音乐': 'subject-music',
-            '美术': 'subject-art',
-            '历史': 'subject-history',
-            '地理': 'subject-geography',
-            '自习': 'subject-self-study',
-            '活动': 'subject-activity',
-            '班会': 'subject-history',
-            '实验': 'subject-chemistry',
-            '作业辅导': 'subject-self-study',
-            '社团活动': 'subject-activity'
+            '语文': 'language',
+            '数学': 'math',
+            '英语': 'english',
+            '物理': 'physics',
+            '化学': 'chemistry',
+            '体育': 'sports',
+            '音乐': 'music',
+            '美术': 'art',
+            '历史': 'history',
+            '地理': 'geography',
+            '自习': 'self-study',
+            '活动': 'activity',
+            '班会': 'meeting',
+            '实验': 'experiment',
+            '作业辅导': 'tutoring',
+            '社团活动': 'activity'
         };
         
         // 初始化事件监听器
@@ -424,18 +466,34 @@
             resetUI();
             showLoading();
             hideError();
+            hideSuccess();
             
             try {
-                const response = await fetch(url);
+                console.log('开始加载JSON文件:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    cache: 'no-cache'
+                });
+                
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
+                console.log('响应状态:', response.status);
+                
                 const data = await response.json();
+                console.log('成功解析JSON数据:', data);
+                
                 processJsonData(data, url);
                 
             } catch (err) {
-                showError(`加载失败: ${err.message}`);
+                console.error('加载JSON失败:', err);
+                showError(`加载JSON失败: ${err.message}`);
             } finally {
                 hideLoading();
             }
@@ -444,10 +502,22 @@
         // 处理JSON数据
         function processJsonData(data, url) {
             try {
+                console.log('开始处理JSON数据...');
+                
+                // 检查数据格式
+                if (!data || typeof data !== 'object') {
+                    throw new Error('JSON数据格式不正确');
+                }
+                
+                // 提取教师数据
+                if (!data.teachers) {
+                    throw new Error('JSON数据中缺少teachers字段');
+                }
+                
                 teachers = extractTeachers(data);
                 
                 if (teachers.length === 0) {
-                    showError('未找到教师数据。请确认JSON格式是否正确。');
+                    showError('JSON数据中没有找到有效的教师信息');
                     return;
                 }
                 
@@ -456,8 +526,11 @@
                 
                 displayTeacherList(teachers);
                 
+                showSuccess(`成功加载 ${teachers.length} 位教师的数据`);
+                
             } catch (err) {
-                showError(`处理数据失败: ${err.message}`);
+                console.error('处理JSON数据失败:', err);
+                showError(`处理JSON数据失败: ${err.message}`);
             }
         }
         
@@ -465,20 +538,27 @@
         function extractTeachers(data) {
             const teachers = [];
             
+            console.log('提取教师数据，teachers对象:', data.teachers);
+            
             if (data.teachers && typeof data.teachers === 'object') {
-                Object.keys(data.teachers).forEach((name, index) => {
-                    const teacherData = data.teachers[name];
-                    teachers.push({
-                        id: index,
-                        name: teacherData.name || name,
-                        description: teacherData.description || '',
-                        rows: teacherData.rows || 0,
-                        cols: teacherData.cols || 0,
-                        data: teacherData.data || []
-                    });
+                Object.keys(data.teachers).forEach((teacherKey, index) => {
+                    const teacherData = data.teachers[teacherKey];
+                    console.log(`处理教师 ${teacherKey}:`, teacherData);
+                    
+                    if (teacherData && teacherData.data) {
+                        teachers.push({
+                            id: index,
+                            name: teacherData.name || teacherKey,
+                            description: teacherData.description || '',
+                            rows: teacherData.rows || 0,
+                            cols: teacherData.cols || 0,
+                            data: teacherData.data || []
+                        });
+                    }
                 });
             }
             
+            console.log('提取到的教师数量:', teachers.length);
             return teachers;
         }
         
@@ -545,7 +625,7 @@
                 try {
                     const timetableData = teacher.data;
                     
-                    if (!timetableData || timetableData.length === 0) {
+                    if (!timetableData || !Array.isArray(timetableData) || timetableData.length === 0) {
                         currentTeacherDesc.textContent = '该教师没有可用的课表数据';
                         loadingIndicator.style.display = 'none';
                         noDataMessage.style.display = 'block';
@@ -559,6 +639,7 @@
                     timetableContent.style.display = 'block';
                     
                 } catch (err) {
+                    console.error('显示课表失败:', err);
                     showError(`显示课表失败: ${err.message}`);
                     loadingIndicator.style.display = 'none';
                 }
@@ -579,7 +660,7 @@
             // 第一行是表头
             for (let col = 0; col < data[0].length; col++) {
                 const cellValue = data[0][col] || '';
-                const cellClass = col === 0 ? 'corner-cell' : 'header-cell';
+                const cellClass = col === 0 ? 'corner-cell' : '';
                 headerHTML += `<th class="${cellClass}">${cellValue}</th>`;
             }
             headerHTML += '</tr>';
@@ -596,20 +677,26 @@
                     const cellValue = rowData[col] !== undefined ? rowData[col] : '';
                     const cellDisplay = formatCellValue(cellValue);
                     
-                    let cellClass = 'course-cell';
+                    let cellClass = '';
+                    let cellContent = cellDisplay;
+                    
                     if (col === 0) {
-                        cellClass = 'row-header time-header';
+                        // 行标题单元格
+                        cellClass = 'row-header';
                     } else if (cellValue) {
+                        // 课程单元格
+                        cellClass = 'course-cell';
+                        
                         // 根据课程内容添加颜色类
                         for (const [keyword, colorClass] of Object.entries(courseColors)) {
-                            if (cellValue.includes(keyword)) {
+                            if (cellDisplay.includes(keyword)) {
                                 cellClass += ' ' + colorClass;
                                 break;
                             }
                         }
                     }
                     
-                    bodyHTML += `<td class="${cellClass}">${cellDisplay}</td>`;
+                    bodyHTML += `<td class="${cellClass}">${cellContent}</td>`;
                 }
                 
                 bodyHTML += '</tr>';
@@ -617,11 +704,42 @@
             tableBody.innerHTML = bodyHTML;
         }
         
-        // 格式化单元格值
+        // 格式化单元格值 - 支持课程+班级格式
         function formatCellValue(value) {
-            if (value === null || value === undefined || value === '') {
+            if (value === null || value === undefined) {
                 return '';
             }
+            
+            // 如果值是对象形式 {course: "课程", class: "班级"}
+            if (typeof value === 'object' && value !== null) {
+                if (value.course) {
+                    let html = `<span class="course-name">${value.course}</span>`;
+                    if (value.class) {
+                        html += `<span class="class-info">${value.class}</span>`;
+                    }
+                    return html;
+                }
+                return JSON.stringify(value);
+            }
+            
+            // 如果值是字符串，检查是否包含<br>标签
+            if (typeof value === 'string') {
+                if (value.includes('<br>')) {
+                    const parts = value.split('<br>');
+                    if (parts.length >= 2) {
+                        return `<span class="course-name">${parts[0]}</span><span class="class-info">${parts[1]}</span>`;
+                    }
+                }
+                
+                // 如果是"课程/班级"格式
+                if (value.includes('/')) {
+                    const parts = value.split('/');
+                    if (parts.length >= 2) {
+                        return `<span class="course-name">${parts[0]}</span><span class="class-info">${parts[1]}</span>`;
+                    }
+                }
+            }
+            
             return String(value);
         }
         
@@ -646,6 +764,20 @@
             errorMessage.style.display = 'none';
         }
         
+        // 显示成功
+        function showSuccess(message) {
+            successText.textContent = message;
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 隐藏成功
+        function hideSuccess() {
+            successMessage.style.display = 'none';
+        }
+        
         // 重置UI
         function resetUI() {
             jsonData = null;
@@ -659,16 +791,21 @@
             teacherCountDisplay.textContent = '0';
             
             hideError();
+            hideSuccess();
         }
         
         // 页面加载完成
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('页面加载完成，初始化事件监听器...');
             initEventListeners();
             
             // 自动尝试加载默认JSON文件
             setTimeout(() => {
+                console.log('尝试自动加载JSON文件...');
                 if (window.location.href.indexOf('file://') === -1) {
                     loadJsonBtn.click();
+                } else {
+                    console.log('本地文件模式，不自动加载');
                 }
             }, 500);
         });
