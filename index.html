@@ -1084,35 +1084,75 @@
             }
         }
 
-        // 获取JSON文件列表
         async function getJsonFiles() {
-            const fileList = [];
-            
-            const defaultFiles = [
-                '202409课表.json',
-                '课表.json',
-                'schedule.json',
-                'timetable.json',
-                'data.json'
-            ];
-            
-            for (const fileName of defaultFiles) {
-                try {
-                    const response = await fetch(fileName, { 
-                        method: 'HEAD',
-                        cache: 'no-cache'
-                    });
-                    
-                    if (response.ok) {
-                        fileList.push(fileName);
-                    }
-                } catch (err) {
-                    // 继续尝试下一个文件
+    try {
+        const fileList = [];
+        
+        // 首先尝试预定义的文件
+        const defaultFiles = [
+            '202409课表.json',
+            '202410课表.json',
+            '202411课表.json',
+            '课表.json',
+            'schedule.json',
+            'timetable.json',
+            'data.json'
+        ];
+        
+        for (const fileName of defaultFiles) {
+            try {
+                const response = await fetch(fileName, { 
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    fileList.push(fileName);
                 }
+            } catch (err) {
+                // 继续尝试下一个文件
             }
-            
+        }
+        
+        // 如果已经找到文件，直接返回
+        if (fileList.length > 0) {
             return fileList;
         }
+        
+        // 尝试获取目录列表
+        try {
+            const response = await fetch('/');
+            if (response.ok) {
+                const text = await response.text();
+                
+                // 从HTML中提取.json文件
+                const regex = /href="([^"]+\.json)"/gi;
+                let match;
+                const foundFiles = [];
+                
+                while ((match = regex.exec(text)) !== null) {
+                    const fileName = match[1];
+                    // 过滤掉路径中的文件
+                    if (!fileName.includes('/') && !fileName.includes('\\')) {
+                        foundFiles.push(fileName);
+                    }
+                }
+                
+                // 去重并添加到列表
+                const uniqueFiles = [...new Set(foundFiles)];
+                fileList.push(...uniqueFiles);
+            }
+        } catch (dirErr) {
+            console.log('无法获取目录列表，将只使用预定义文件');
+        }
+        
+        return fileList;
+        
+    } catch (err) {
+        console.error('扫描文件失败:', err);
+        return [];
+    }
+}
 
         // 在模态框中显示消息
         function showMessageInModal(text) {
