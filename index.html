@@ -159,6 +159,30 @@
             color: #1a5f7a;
         }
         
+        .file-type-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-left: 5px;
+        }
+        
+        .file-type-class {
+            background: rgba(26, 95, 122, 0.2);
+            color: #1a5f7a;
+        }
+        
+        .file-type-teacher {
+            background: rgba(42, 157, 143, 0.2);
+            color: #2a9d8f;
+        }
+        
+        .file-type-both {
+            background: linear-gradient(90deg, rgba(26, 95, 122, 0.2), rgba(42, 157, 143, 0.2));
+            color: #1a5f7a;
+        }
+        
         .refresh-btn {
             background: none;
             border: none;
@@ -199,7 +223,7 @@
             background: white;
             border-radius: 10px;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             max-height: 80vh;
             overflow: hidden;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -269,13 +293,37 @@
             font-size: 1rem;
         }
         
-        .file-item-size {
+        .file-item-details {
             font-size: 0.8rem;
             color: #666;
             margin-top: 3px;
         }
         
-        .file-item.active .file-item-size {
+        .file-type-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-left: 5px;
+        }
+        
+        .file-type-class {
+            background: rgba(26, 95, 122, 0.2);
+            color: #1a5f7a;
+        }
+        
+        .file-type-teacher {
+            background: rgba(42, 157, 143, 0.2);
+            color: #2a9d8f;
+        }
+        
+        .file-type-both {
+            background: linear-gradient(90deg, rgba(26, 95, 122, 0.2), rgba(42, 157, 143, 0.2));
+            color: #1a5f7a;
+        }
+        
+        .file-item.active .file-item-details {
             color: rgba(255, 255, 255, 0.9);
         }
         
@@ -904,6 +952,7 @@
                 <i class="fas fa-file-code"></i>
                 <div class="current-data-text">
                     当前加载: <strong id="currentFileName">未选择文件</strong>
+                    <span id="fileTypeIndicator" class="file-type-indicator">未知类型</span>
                     <div style="font-size: 0.8rem; color: #666; margin-top: 2px;">
                         班级: <span id="classCount">0</span> 个 | 
                         教师: <span id="teacherCount">0</span> 位 | 
@@ -1021,6 +1070,7 @@
         const successMessage = document.getElementById('successMessage');
         const successText = document.getElementById('successText');
         const loadingIndicator = document.getElementById('loadingIndicator');
+        const fileTypeIndicator = document.getElementById('fileTypeIndicator');
         
         // 文件选择弹窗相关元素
         const fileSelectModal = document.getElementById('fileSelectModal');
@@ -1134,21 +1184,6 @@
                 searchTeachers(teacherSearch.value.trim());
             });
             
-            // 搜索框键盘事件
-            teacherSearch.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    teacherSearch.value = '';
-                    searchTeachers('');
-                } else if (e.key === 'Enter') {
-                    const firstVisible = document.querySelector('.teacher-item:not(.hidden)');
-                    if (firstVisible) {
-                        const teacherId = parseInt(firstVisible.dataset.id);
-                        selectData('teacher', teacherId);
-                        if (isMobile) closeSidebar();
-                    }
-                }
-            });
-            
             // 检测屏幕尺寸变化
             window.addEventListener('resize', checkScreenSize);
             checkScreenSize();
@@ -1159,7 +1194,7 @@
             }, 500);
         }
         
-        // 扫描当前路径下的JSON文件 - 修复版
+        // 扫描当前路径下的JSON文件
         async function scanForJsonFiles() {
             try {
                 fileList.innerHTML = `
@@ -1184,8 +1219,7 @@
                         const text = await response.text();
                         console.log('目录列表响应:', text.substring(0, 200));
                         
-                        // 使用更简单的方法解析链接
-                        const links = [];
+                        // 使用正则表达式解析链接
                         const regex = /href="([^"]+\.json)"/gi;
                         let match;
                         
@@ -1194,15 +1228,14 @@
                             if (href && !href.startsWith('http') && !href.startsWith('//')) {
                                 const fileName = decodeURIComponent(href.split('/').pop());
                                 console.log('找到JSON文件:', fileName);
-                                availableFiles.push({
-                                    name: fileName,
-                                    path: href,
-                                    isLocal: true
-                                });
+                                
+                                // 获取文件类型信息
+                                const fileInfo = await getFileTypeInfo(href, fileName);
+                                availableFiles.push(fileInfo);
                             }
                         }
                         
-                        console.log('通过正则找到文件数:', availableFiles.length);
+                        console.log('找到文件数:', availableFiles.length);
                     }
                 } catch (e) {
                     console.log('通过目录列表获取文件失败:', e.message);
@@ -1210,7 +1243,6 @@
                 
                 // 方法2: 如果方法1没找到，尝试直接测试文件名
                 if (availableFiles.length === 0) {
-                    console.log('尝试方法2: 测试常见文件名');
                     const testFiles = [
                         '202409课表.json',
                         '课表.json',
@@ -1224,15 +1256,9 @@
                     for (const fileName of testFiles) {
                         try {
                             const testUrl = basePath + '/' + fileName;
-                            console.log('测试文件:', testUrl);
-                            const response = await fetch(testUrl, { method: 'HEAD' });
-                            if (response.ok) {
-                                console.log('找到文件:', fileName);
-                                availableFiles.push({
-                                    name: fileName,
-                                    path: testUrl,
-                                    isLocal: true
-                                });
+                            const fileInfo = await getFileTypeInfo(testUrl, fileName);
+                            if (fileInfo) {
+                                availableFiles.push(fileInfo);
                             }
                         } catch (e) {
                             // 文件不存在，忽略
@@ -1261,6 +1287,65 @@
                         </p>
                     </div>
                 `;
+            }
+        }
+        
+        // 获取文件类型信息
+        async function getFileTypeInfo(filePath, fileName) {
+            try {
+                const response = await fetch(filePath, { method: 'HEAD' });
+                if (!response.ok) {
+                    return null;
+                }
+                
+                // 尝试读取文件的前几KB来检测类型
+                const dataResponse = await fetch(filePath);
+                const text = await dataResponse.text();
+                
+                // 分析文件内容
+                let fileType = 'unknown';
+                let classCount = 0;
+                let teacherCount = 0;
+                
+                try {
+                    const data = JSON.parse(text);
+                    
+                    // 检查是否包含班级数据
+                    if (data.classes && typeof data.classes === 'object') {
+                        classCount = Object.keys(data.classes).length;
+                        fileType = 'class';
+                    }
+                    
+                    // 检查是否包含教师数据
+                    if (data.teachers && typeof data.teachers === 'object') {
+                        teacherCount = Object.keys(data.teachers).length;
+                        if (fileType === 'class') {
+                            fileType = 'both'; // 既有班级又有教师
+                        } else {
+                            fileType = 'teacher';
+                        }
+                    }
+                } catch (e) {
+                    console.log('文件解析失败:', e.message);
+                }
+                
+                return {
+                    name: fileName,
+                    path: filePath,
+                    isLocal: true,
+                    type: fileType,
+                    classCount: classCount,
+                    teacherCount: teacherCount
+                };
+            } catch (e) {
+                return {
+                    name: fileName,
+                    path: filePath,
+                    isLocal: true,
+                    type: 'unknown',
+                    classCount: 0,
+                    teacherCount: 0
+                };
             }
         }
         
@@ -1293,9 +1378,37 @@
                     fileItem.classList.add('active');
                 }
                 
+                // 生成类型标签
+                let typeTag = '';
+                let typeText = '';
+                
+                if (file.type === 'class') {
+                    typeTag = '<span class="file-type-tag file-type-class">班级课表</span>';
+                    typeText = '班级课表';
+                } else if (file.type === 'teacher') {
+                    typeTag = '<span class="file-type-tag file-type-teacher">教师课表</span>';
+                    typeText = '教师课表';
+                } else if (file.type === 'both') {
+                    typeTag = '<span class="file-type-tag file-type-both">班级+教师</span>';
+                    typeText = '班级+教师课表';
+                } else {
+                    typeTag = '<span class="file-type-tag">未知类型</span>';
+                    typeText = '未知类型';
+                }
+                
+                // 生成详情信息
+                let detailsText = file.isLocal ? '本地文件' : '远程文件';
+                if (file.type === 'class' && file.classCount > 0) {
+                    detailsText += ` | ${file.classCount}个班级`;
+                } else if (file.type === 'teacher' && file.teacherCount > 0) {
+                    detailsText += ` | ${file.teacherCount}位教师`;
+                } else if (file.type === 'both') {
+                    detailsText += ` | ${file.classCount}个班级 ${file.teacherCount}位教师`;
+                }
+                
                 fileItem.innerHTML = `
-                    <div class="file-item-name">${file.name}</div>
-                    <div class="file-item-size">${file.isLocal ? '本地文件' : '远程文件'}</div>
+                    <div class="file-item-name">${file.name} ${typeTag}</div>
+                    <div class="file-item-details">${detailsText}</div>
                 `;
                 
                 fileItem.addEventListener('click', () => {
@@ -1323,17 +1436,6 @@
             }
         }
         
-        // 打开文件选择弹窗
-        function openFileSelectModal() {
-            fileSelectModal.classList.add('active');
-            scanForJsonFiles();
-        }
-        
-        // 关闭文件选择弹窗
-        function closeFileSelectModal() {
-            fileSelectModal.classList.remove('active');
-        }
-        
         // 加载选中的文件
         async function loadSelectedFile() {
             if (selectedFileIndex === -1 || !availableFiles[selectedFileIndex]) {
@@ -1346,7 +1448,7 @@
             loadData(selectedFile.path, selectedFile.name);
         }
         
-        // 加载数据 - 修复编码问题
+        // 加载数据
         async function loadData(url, displayName = '') {
             resetUI();
             showLoading();
@@ -1378,16 +1480,8 @@
                     cleanText = text.substring(1);
                 }
                 
-                // 尝试解析JSON
-                let data;
-                try {
-                    data = JSON.parse(cleanText);
-                } catch (parseError) {
-                    // 如果解析失败，尝试移除控制字符
-                    const cleaned = cleanText.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
-                    data = JSON.parse(cleaned);
-                }
-                
+                // 解析JSON
+                const data = JSON.parse(cleanText);
                 console.log('成功解析JSON数据');
                 
                 // 更新当前文件信息
@@ -1396,53 +1490,36 @@
                 currentFileName.textContent = fileName;
                 currentFileTime.textContent = new Date().toLocaleTimeString('zh-CN');
                 
+                // 更新文件类型指示器
+                updateFileTypeIndicator(data);
+                
                 processJsonData(data, url, fileName);
                 
             } catch (err) {
                 console.error('加载课表失败:', err);
-                
-                // 尝试使用不同的方法
-                try {
-                    console.log('尝试使用textDecoder...');
-                    const response = await fetch(url);
-                    const buffer = await response.arrayBuffer();
-                    
-                    // 尝试不同的编码
-                    const encodings = ['utf-8', 'utf-16le', 'utf-16be', 'gbk', 'gb2312', 'gb18030'];
-                    
-                    for (const encoding of encodings) {
-                        try {
-                            const decoder = new TextDecoder(encoding);
-                            const text = decoder.decode(buffer);
-                            
-                            // 移除BOM
-                            let cleanText = text;
-                            if (text.startsWith('\uFEFF')) {
-                                cleanText = text.substring(1);
-                            }
-                            
-                            const data = JSON.parse(cleanText);
-                            console.log(`使用 ${encoding} 编码解析成功`);
-                            
-                            // 更新当前文件信息
-                            currentFilePath = url;
-                            const fileName = displayName || url.split('/').pop() || '未命名文件';
-                            currentFileName.textContent = fileName;
-                            currentFileTime.textContent = new Date().toLocaleTimeString('zh-CN');
-                            
-                            processJsonData(data, url, fileName);
-                            return;
-                        } catch (e) {
-                            // 继续尝试下一个编码
-                        }
-                    }
-                    
-                    throw new Error('无法解析JSON文件，请检查文件编码和格式');
-                } catch (fallbackError) {
-                    showError(`加载失败: ${fallbackError.message}`);
-                }
+                showError(`加载失败: ${err.message}`);
             } finally {
                 hideLoading();
+            }
+        }
+        
+        // 更新文件类型指示器
+        function updateFileTypeIndicator(data) {
+            const hasClasses = data.classes && typeof data.classes === 'object' && Object.keys(data.classes).length > 0;
+            const hasTeachers = data.teachers && typeof data.teachers === 'object' && Object.keys(data.teachers).length > 0;
+            
+            if (hasClasses && hasTeachers) {
+                fileTypeIndicator.textContent = '班级+教师课表';
+                fileTypeIndicator.className = 'file-type-indicator file-type-both';
+            } else if (hasClasses) {
+                fileTypeIndicator.textContent = '班级课表';
+                fileTypeIndicator.className = 'file-type-indicator file-type-class';
+            } else if (hasTeachers) {
+                fileTypeIndicator.textContent = '教师课表';
+                fileTypeIndicator.className = 'file-type-indicator file-type-teacher';
+            } else {
+                fileTypeIndicator.textContent = '未知类型';
+                fileTypeIndicator.className = 'file-type-indicator';
             }
         }
         
@@ -1488,7 +1565,11 @@
                     selectData('teacher', 0);
                 }
                 
-                showSuccess(`成功加载 ${classes.length} 个班级和 ${teachers.length} 位教师的课表数据`);
+                const classText = classes.length > 0 ? `${classes.length}个班级` : '';
+                const teacherText = teachers.length > 0 ? `${teachers.length}位教师` : '';
+                const connector = classes.length > 0 && teachers.length > 0 ? '和' : '';
+                
+                showSuccess(`成功加载 ${classText}${connector}${teacherText} 的课表数据`);
                 
             } catch (err) {
                 console.error('处理课表数据失败:', err);
@@ -1684,55 +1765,12 @@
                 if (matches) {
                     item.classList.remove('hidden');
                     visibleCount++;
-                    
-                    if (searchTerm) {
-                        highlightText(item, searchTerm);
-                    } else {
-                        removeHighlight(item);
-                    }
                 } else {
                     item.classList.add('hidden');
                 }
             });
             
             visibleTeacherCount.textContent = visibleCount;
-        }
-        
-        // 高亮文本
-        function highlightText(item, searchTerm) {
-            const nameElement = item.querySelector('.teacher-item-name');
-            const descElement = item.querySelector('.teacher-item-desc');
-            
-            if (nameElement) {
-                const teacherId = parseInt(item.dataset.id);
-                const teacher = teachers.find(t => t.id === teacherId);
-                if (teacher) {
-                    const highlightedName = highlightTextInElement(teacher.name, searchTerm);
-                    nameElement.innerHTML = highlightedName;
-                }
-            }
-            
-            if (descElement) {
-                const teacherId = parseInt(item.dataset.id);
-                const teacher = teachers.find(t => t.id === teacherId);
-                if (teacher && teacher.description) {
-                    const highlightedDesc = highlightTextInElement(teacher.description, searchTerm);
-                    descElement.innerHTML = highlightedDesc;
-                }
-            }
-        }
-        
-        // 高亮显示搜索词
-        function highlightTextInElement(text, searchTerm) {
-            if (!searchTerm) return text;
-            
-            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
-            return text.replace(regex, '<span class="search-highlight">$1</span>');
-        }
-        
-        // 转义正则表达式特殊字符
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
         
         // 选择数据
