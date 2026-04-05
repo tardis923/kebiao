@@ -129,6 +129,22 @@
             flex-wrap: wrap;
         }
         
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
         .btn {
             padding: 12px 25px;
             background: #667eea;
@@ -156,6 +172,37 @@
         .btn-secondary:hover {
             background: #5a6268;
             box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .sample-data-section {
+            margin-top: 20px;
+        }
+        
+        .sample-data-section h3 {
+            color: #495057;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        
+        .sample-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .sample-data-btn {
+            padding: 8px 15px;
+            background: #e9ecef;
+            color: #495057;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s ease;
+        }
+        
+        .sample-data-btn:hover {
+            background: #dee2e6;
         }
         
         .search-box {
@@ -264,47 +311,100 @@
             padding: 40px;
         }
         
-        .json-file-selector {
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
             margin-bottom: 20px;
         }
         
-        .json-file-selector h3 {
+        .modal-header h2 {
             color: #495057;
-            margin-bottom: 12px;
-            font-size: 1.1em;
+            font-size: 1.5em;
+        }
+        
+        .modal-body {
+            margin-bottom: 20px;
         }
         
         .json-file-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 10px;
         }
         
-        .json-file-btn {
-            padding: 10px 15px;
+        .json-file-item {
+            padding: 12px 15px;
+            margin-bottom: 8px;
             background: white;
             border: 2px solid #e9ecef;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            text-align: left;
             transition: all 0.2s ease;
         }
         
-        .json-file-btn:hover {
+        .json-file-item:hover {
             border-color: #667eea;
             background: #f0f3ff;
         }
         
-        .json-file-btn.active {
+        .json-file-item.active {
             background: #667eea;
             color: white;
             border-color: #667eea;
         }
         
-        @media (max-width: 1200px) {
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .btn-outline {
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+            
             .main-content {
                 flex-direction: column;
             }
@@ -312,25 +412,27 @@
             .sidebar {
                 width: 100%;
                 flex-direction: row;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
             }
             
             .sidebar-section {
                 flex: 1;
                 min-height: 250px;
+                border-bottom: none;
+                border-right: 1px solid #e9ecef;
             }
-        }
-        
-        @media (max-width: 768px) {
-            .header {
+            
+            .sidebar-section:last-child {
+                border-right: none;
+            }
+            
+            .content-area {
                 padding: 20px;
             }
             
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .sidebar {
-                flex-direction: column;
+            table {
+                min-width: 600px;
             }
             
             .controls {
@@ -341,6 +443,26 @@
                 width: 100%;
                 justify-content: center;
             }
+            
+            .modal-content {
+                margin: 20% auto;
+                width: 95%;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .sidebar {
+                flex-direction: column;
+            }
+            
+            .sidebar-section {
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .sidebar-section:last-child {
+                border-bottom: none;
+            }
         }
     </style>
 </head>
@@ -348,7 +470,7 @@
     <div class="container">
         <div class="header">
             <h1>📚 班级与教师课表查询系统</h1>
-            <p>自动加载同路径下的JSON课表文件</p>
+            <p>点击"选择JSON文件"加载课表数据</p>
         </div>
         
         <div class="main-content">
@@ -359,7 +481,7 @@
                     <h2>🏫 班级列表</h2>
                     <div class="list-container">
                         <ul id="classesList">
-                            <li class="no-data">正在加载数据...</li>
+                            <li class="no-data">请先加载课表数据</li>
                         </ul>
                     </div>
                 </div>
@@ -369,7 +491,7 @@
                     <h2>👨‍🏫 教师列表</h2>
                     <div class="list-container">
                         <ul id="teachersList">
-                            <li class="no-data">正在加载数据...</li>
+                            <li class="no-data">请先加载课表数据</li>
                         </ul>
                     </div>
                 </div>
@@ -385,12 +507,15 @@
             
             <!-- 主要内容区域 -->
             <div class="content-area">
-                <!-- JSON文件选择器 -->
-                <div class="json-file-selector">
-                    <h3>📁 可用的JSON课表文件：</h3>
-                    <div class="json-file-list" id="jsonFileList">
-                        <div class="no-data">正在扫描同路径下的JSON文件...</div>
-                    </div>
+                <!-- 控制区域 -->
+                <div class="controls">
+                    <button class="btn" id="loadJsonBtn">
+                        <span>📁 选择JSON文件</span>
+                    </button>
+                    
+                    <button class="btn btn-secondary" id="resetSearch" disabled>
+                        <span>🔄 重置搜索</span>
+                    </button>
                 </div>
                 
                 <!-- 课表显示区域 -->
@@ -414,6 +539,23 @@
         </div>
     </div>
 
+    <!-- JSON文件选择模态框 -->
+    <div id="jsonFileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📁 选择JSON课表文件</h2>
+            </div>
+            <div class="modal-body">
+                <div class="json-file-list" id="jsonFileList">
+                    <div class="no-data">正在扫描同路径下的JSON文件...</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-outline" id="closeModal">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // 全局变量
         let allClasses = [];
@@ -422,6 +564,7 @@
         let currentType = null;
         let allSchedules = null;
         let currentJsonFile = null;
+        let jsonFiles = [];
 
         // DOM元素
         let classesListElement = null;
@@ -431,12 +574,15 @@
         let searchInputElement = null;
         let messageElement = null;
         let jsonFileListElement = null;
+        let jsonFileModal = null;
+        let loadJsonBtn = null;
+        let closeModalBtn = null;
+        let resetSearchBtn = null;
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             initializeElements();
             initializeEventListeners();
-            scanAndLoadJsonFiles();
         });
 
         // 初始化DOM元素
@@ -448,10 +594,33 @@
             searchInputElement = document.getElementById('searchInput');
             messageElement = document.getElementById('message');
             jsonFileListElement = document.getElementById('jsonFileList');
+            jsonFileModal = document.getElementById('jsonFileModal');
+            loadJsonBtn = document.getElementById('loadJsonBtn');
+            closeModalBtn = document.getElementById('closeModal');
+            resetSearchBtn = document.getElementById('resetSearch');
         }
 
         // 初始化事件监听器
         function initializeEventListeners() {
+            // 加载JSON按钮事件
+            if (loadJsonBtn) {
+                loadJsonBtn.addEventListener('click', showJsonFileModal);
+            }
+            
+            // 关闭模态框按钮事件
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', hideJsonFileModal);
+            }
+            
+            // 点击模态框背景关闭
+            if (jsonFileModal) {
+                jsonFileModal.addEventListener('click', function(event) {
+                    if (event.target === jsonFileModal) {
+                        hideJsonFileModal();
+                    }
+                });
+            }
+            
             // 搜索框事件
             if (searchInputElement) {
                 searchInputElement.addEventListener('input', handleSearch);
@@ -462,174 +631,120 @@
                 });
             }
             
-            // 重置搜索按钮
-            const resetSearchButton = document.getElementById('resetSearch');
-            if (resetSearchButton) {
-                resetSearchButton.addEventListener('click', resetSearch);
+            // 重置搜索按钮事件
+            if (resetSearchBtn) {
+                resetSearchBtn.addEventListener('click', resetSearch);
             }
         }
 
-        // 扫描并加载同路径下的JSON文件
-        async function scanAndLoadJsonFiles() {
+        // 显示JSON文件选择模态框
+        function showJsonFileModal() {
+            if (!jsonFileModal) return;
+            
+            jsonFileModal.style.display = 'block';
+            scanJsonFiles();
+        }
+
+        // 隐藏JSON文件选择模态框
+        function hideJsonFileModal() {
+            if (!jsonFileModal) return;
+            
+            jsonFileModal.style.display = 'none';
+        }
+
+        // 扫描JSON文件
+        async function scanJsonFiles() {
             try {
-                showMessage('正在扫描同路径下的JSON文件...', '#3498db');
+                showMessageInModal('正在扫描同路径下的JSON文件...');
                 
-                // 首先尝试加载默认的课表文件
-                const defaultFiles = [
-                    '202409课表.json',
-                    '课表.json',
-                    'schedule.json',
-                    'timetable.json',
-                    'data.json'
-                ];
+                // 尝试获取当前目录的文件列表
+                const fileList = await getJsonFiles();
                 
-                let foundFile = null;
-                
-                // 尝试加载默认文件
-                for (const fileName of defaultFiles) {
-                    try {
-                        const response = await fetch(fileName, { 
-                            method: 'HEAD',
-                            cache: 'no-cache'
-                        });
-                        
-                        if (response.ok) {
-                            foundFile = fileName;
-                            console.log(`找到默认文件: ${fileName}`);
-                            break;
-                        }
-                    } catch (err) {
-                        // 继续尝试下一个文件
-                        console.log(`未找到文件: ${fileName}`);
-                    }
+                if (fileList.length === 0) {
+                    showMessageInModal('未在同路径下找到JSON文件。请确保有课表JSON文件存在。');
+                    return;
                 }
                 
-                // 如果没有找到默认文件，尝试列出当前目录下的所有JSON文件
-                if (!foundFile) {
-                    showMessage('正在扫描目录中的JSON文件...', '#3498db');
-                    
-                    // 尝试获取目录列表
-                    try {
-                        const response = await fetch('.');
-                        if (response.ok) {
-                            const text = await response.text();
-                            // 从HTML中提取JSON文件
-                            const jsonFiles = extractJsonFilesFromHtml(text);
-                            updateJsonFileList(jsonFiles);
-                            
-                            if (jsonFiles.length > 0) {
-                                // 自动加载第一个JSON文件
-                                loadJsonFile(jsonFiles[0]);
-                            } else {
-                                showError('未在同路径下找到JSON文件。请确保有课表JSON文件存在。');
-                            }
-                        }
-                    } catch (err) {
-                        console.error('扫描目录失败:', err);
-                        showManualFileSelector();
-                    }
-                } else {
-                    // 加载找到的默认文件
-                    loadJsonFile(foundFile);
-                }
+                jsonFiles = fileList;
+                updateJsonFileList(fileList);
                 
             } catch (err) {
                 console.error('扫描JSON文件失败:', err);
-                showManualFileSelector();
+                showMessageInModal('扫描文件失败: ' + err.message);
             }
         }
 
-        // 从HTML内容中提取JSON文件
-        function extractJsonFilesFromHtml(html) {
-            const jsonFiles = [];
+        // 获取JSON文件列表
+        async function getJsonFiles() {
+            const fileList = [];
             
-            // 简单的正则表达式匹配JSON文件
-            const regex = /href="([^"]+\.json)"/gi;
-            let match;
+            // 尝试加载默认的课表文件
+            const defaultFiles = [
+                '202409课表.json',
+                '课表.json',
+                'schedule.json',
+                'timetable.json',
+                'data.json'
+            ];
             
-            while ((match = regex.exec(html)) !== null) {
-                const fileName = match[1];
-                if (!fileName.includes('/') && !fileName.includes('\\')) {
-                    jsonFiles.push(fileName);
+            // 检查默认文件是否存在
+            for (const fileName of defaultFiles) {
+                try {
+                    const response = await fetch(fileName, { 
+                        method: 'HEAD',
+                        cache: 'no-cache'
+                    });
+                    
+                    if (response.ok) {
+                        fileList.push(fileName);
+                    }
+                } catch (err) {
+                    // 继续尝试下一个文件
                 }
             }
             
-            // 去重
-            return [...new Set(jsonFiles)];
+            return fileList;
         }
 
-        // 更新JSON文件列表显示
-        function updateJsonFileList(jsonFiles) {
+        // 在模态框中显示消息
+        function showMessageInModal(text) {
+            if (!jsonFileListElement) return;
+            
+            jsonFileListElement.innerHTML = `<div class="no-data">${text}</div>`;
+        }
+
+        // 更新JSON文件列表
+        function updateJsonFileList(files) {
             if (!jsonFileListElement) return;
             
             jsonFileListElement.innerHTML = '';
             
-            if (jsonFiles.length === 0) {
-                const div = document.createElement('div');
-                div.textContent = '未找到JSON文件';
-                div.className = 'no-data';
-                jsonFileListElement.appendChild(div);
+            if (files.length === 0) {
+                showMessageInModal('未找到JSON文件');
                 return;
             }
             
-            jsonFiles.forEach((fileName, index) => {
-                const button = document.createElement('button');
-                button.textContent = fileName;
-                button.className = 'json-file-btn';
+            files.forEach((fileName, index) => {
+                const div = document.createElement('div');
+                div.textContent = fileName;
+                div.className = 'json-file-item';
                 
                 if (currentJsonFile === fileName) {
-                    button.classList.add('active');
+                    div.classList.add('active');
                 }
                 
-                button.addEventListener('click', () => {
+                div.addEventListener('click', () => {
                     loadJsonFile(fileName);
                 });
                 
-                jsonFileListElement.appendChild(button);
+                jsonFileListElement.appendChild(div);
             });
-        }
-
-        // 显示手动文件选择器
-        function showManualFileSelector() {
-            if (!jsonFileListElement) return;
-            
-            jsonFileListElement.innerHTML = `
-                <div style="color: #666; margin-bottom: 10px;">
-                    未能自动检测到JSON文件，请手动输入文件名：
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <input type="text" id="manualFileInput" placeholder="例如: 202409课表.json" style="flex: 1; padding: 8px; border: 2px solid #e9ecef; border-radius: 6px;">
-                    <button id="loadManualFile" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                        加载
-                    </button>
-                </div>
-            `;
-            
-            const loadButton = document.getElementById('loadManualFile');
-            const fileInput = document.getElementById('manualFileInput');
-            
-            if (loadButton && fileInput) {
-                loadButton.addEventListener('click', () => {
-                    const fileName = fileInput.value.trim();
-                    if (fileName) {
-                        loadJsonFile(fileName);
-                    }
-                });
-                
-                fileInput.addEventListener('keyup', (event) => {
-                    if (event.key === 'Enter') {
-                        const fileName = fileInput.value.trim();
-                        if (fileName) {
-                            loadJsonFile(fileName);
-                        }
-                    }
-                });
-            }
         }
 
         // 加载JSON文件
         async function loadJsonFile(fileName) {
             try {
+                hideJsonFileModal();
                 showMessage(`正在加载: ${fileName}`, '#3498db');
                 currentJsonFile = fileName;
                 
@@ -649,27 +764,10 @@
                 const data = await response.json();
                 processJsonData(data, fileName);
                 
-                // 更新文件列表高亮
-                updateJsonFileListHighlight(fileName);
-                
             } catch (err) {
                 console.error('加载JSON文件失败:', err);
                 showError(`加载文件失败: ${err.message}`);
             }
-        }
-
-        // 更新JSON文件列表高亮
-        function updateJsonFileListHighlight(fileName) {
-            if (!jsonFileListElement) return;
-            
-            const buttons = jsonFileListElement.querySelectorAll('.json-file-btn');
-            buttons.forEach(button => {
-                if (button.textContent === fileName) {
-                    button.classList.add('active');
-                } else {
-                    button.classList.remove('active');
-                }
-            });
         }
 
         // 处理JSON数据
@@ -742,10 +840,14 @@
                     }, 3000);
                 }
                 
-                // 启用搜索框
+                // 启用搜索框和重置按钮
                 if (searchInputElement) {
                     searchInputElement.disabled = false;
                     searchInputElement.placeholder = '搜索班级或教师...';
+                }
+                
+                if (resetSearchBtn) {
+                    resetSearchBtn.disabled = false;
                 }
                 
             } catch (err) {
