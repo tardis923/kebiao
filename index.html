@@ -129,22 +129,6 @@
             flex-wrap: wrap;
         }
         
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-        
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
-        }
-        
         .btn {
             padding: 12px 25px;
             background: #667eea;
@@ -172,37 +156,6 @@
         .btn-secondary:hover {
             background: #5a6268;
             box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
-        }
-        
-        .sample-data-section {
-            margin-top: 20px;
-        }
-        
-        .sample-data-section h3 {
-            color: #495057;
-            margin-bottom: 12px;
-            font-size: 1.1em;
-        }
-        
-        .sample-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .sample-data-btn {
-            padding: 8px 15px;
-            background: #e9ecef;
-            color: #495057;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: all 0.2s ease;
-        }
-        
-        .sample-data-btn:hover {
-            background: #dee2e6;
         }
         
         .search-box {
@@ -311,6 +264,46 @@
             padding: 40px;
         }
         
+        .json-file-selector {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .json-file-selector h3 {
+            color: #495057;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        
+        .json-file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .json-file-btn {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        
+        .json-file-btn:hover {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+        
+        .json-file-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
         @media (max-width: 1200px) {
             .main-content {
                 flex-direction: column;
@@ -355,7 +348,7 @@
     <div class="container">
         <div class="header">
             <h1>📚 班级与教师课表查询系统</h1>
-            <p>上传JSON文件或使用示例数据查看课表信息</p>
+            <p>自动加载同路径下的JSON课表文件</p>
         </div>
         
         <div class="main-content">
@@ -366,7 +359,7 @@
                     <h2>🏫 班级列表</h2>
                     <div class="list-container">
                         <ul id="classesList">
-                            <li class="no-data">请上传或选择课表数据</li>
+                            <li class="no-data">正在加载数据...</li>
                         </ul>
                     </div>
                 </div>
@@ -376,7 +369,7 @@
                     <h2>👨‍🏫 教师列表</h2>
                     <div class="list-container">
                         <ul id="teachersList">
-                            <li class="no-data">请上传或选择课表数据</li>
+                            <li class="no-data">正在加载数据...</li>
                         </ul>
                     </div>
                 </div>
@@ -392,34 +385,18 @@
             
             <!-- 主要内容区域 -->
             <div class="content-area">
-                <!-- 控制区域 -->
-                <div class="controls">
-                    <div class="file-input-wrapper">
-                        <button class="btn">
-                            <span>📁 上传JSON文件</span>
-                        </button>
-                        <input type="file" id="fileInput" accept=".json">
-                    </div>
-                    
-                    <button class="btn btn-secondary" id="resetSearch">
-                        <span>🔄 重置搜索</span>
-                    </button>
-                </div>
-                
-                <!-- 示例数据区域 -->
-                <div class="sample-data-section">
-                    <h3>使用示例数据：</h3>
-                    <div class="sample-buttons">
-                        <button class="sample-data-btn" data-url="data/202409课表.json">2024年9月课表</button>
-                        <button class="sample-data-btn" data-url="data/202410课表.json">2024年10月课表</button>
-                        <button class="sample-data-btn" data-url="data/202411课表.json">2024年11月课表</button>
+                <!-- JSON文件选择器 -->
+                <div class="json-file-selector">
+                    <h3>📁 可用的JSON课表文件：</h3>
+                    <div class="json-file-list" id="jsonFileList">
+                        <div class="no-data">正在扫描同路径下的JSON文件...</div>
                     </div>
                 </div>
                 
                 <!-- 课表显示区域 -->
                 <div class="schedule-display">
                     <div class="schedule-header">
-                        <h2 id="scheduleTitle">请选择班级或教师查看课表</h2>
+                        <h2 id="scheduleTitle">请选择JSON文件查看课表</h2>
                     </div>
                     
                     <div class="schedule-container">
@@ -444,6 +421,7 @@
         let currentSchedule = null;
         let currentType = null;
         let allSchedules = null;
+        let currentJsonFile = null;
 
         // DOM元素
         let classesListElement = null;
@@ -452,11 +430,13 @@
         let scheduleTitleElement = null;
         let searchInputElement = null;
         let messageElement = null;
+        let jsonFileListElement = null;
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             initializeElements();
             initializeEventListeners();
+            scanAndLoadJsonFiles();
         });
 
         // 初始化DOM元素
@@ -467,25 +447,11 @@
             scheduleTitleElement = document.getElementById('scheduleTitle');
             searchInputElement = document.getElementById('searchInput');
             messageElement = document.getElementById('message');
+            jsonFileListElement = document.getElementById('jsonFileList');
         }
 
         // 初始化事件监听器
         function initializeEventListeners() {
-            // 文件上传事件
-            const fileInput = document.getElementById('fileInput');
-            if (fileInput) {
-                fileInput.addEventListener('change', handleFileUpload);
-            }
-            
-            // 示例数据按钮事件
-            const sampleDataButtons = document.querySelectorAll('.sample-data-btn');
-            sampleDataButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const url = this.getAttribute('data-url');
-                    loadData(url, this.textContent.trim());
-                });
-            });
-            
             // 搜索框事件
             if (searchInputElement) {
                 searchInputElement.addEventListener('input', handleSearch);
@@ -503,37 +469,171 @@
             }
         }
 
-        // 处理文件上传
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // 扫描并加载同路径下的JSON文件
+        async function scanAndLoadJsonFiles() {
+            try {
+                showMessage('正在扫描同路径下的JSON文件...', '#3498db');
+                
+                // 首先尝试加载默认的课表文件
+                const defaultFiles = [
+                    '202409课表.json',
+                    '课表.json',
+                    'schedule.json',
+                    'timetable.json',
+                    'data.json'
+                ];
+                
+                let foundFile = null;
+                
+                // 尝试加载默认文件
+                for (const fileName of defaultFiles) {
+                    try {
+                        const response = await fetch(fileName, { 
+                            method: 'HEAD',
+                            cache: 'no-cache'
+                        });
+                        
+                        if (response.ok) {
+                            foundFile = fileName;
+                            console.log(`找到默认文件: ${fileName}`);
+                            break;
+                        }
+                    } catch (err) {
+                        // 继续尝试下一个文件
+                        console.log(`未找到文件: ${fileName}`);
+                    }
+                }
+                
+                // 如果没有找到默认文件，尝试列出当前目录下的所有JSON文件
+                if (!foundFile) {
+                    showMessage('正在扫描目录中的JSON文件...', '#3498db');
+                    
+                    // 尝试获取目录列表
+                    try {
+                        const response = await fetch('.');
+                        if (response.ok) {
+                            const text = await response.text();
+                            // 从HTML中提取JSON文件
+                            const jsonFiles = extractJsonFilesFromHtml(text);
+                            updateJsonFileList(jsonFiles);
+                            
+                            if (jsonFiles.length > 0) {
+                                // 自动加载第一个JSON文件
+                                loadJsonFile(jsonFiles[0]);
+                            } else {
+                                showError('未在同路径下找到JSON文件。请确保有课表JSON文件存在。');
+                            }
+                        }
+                    } catch (err) {
+                        console.error('扫描目录失败:', err);
+                        showManualFileSelector();
+                    }
+                } else {
+                    // 加载找到的默认文件
+                    loadJsonFile(foundFile);
+                }
+                
+            } catch (err) {
+                console.error('扫描JSON文件失败:', err);
+                showManualFileSelector();
+            }
+        }
+
+        // 从HTML内容中提取JSON文件
+        function extractJsonFilesFromHtml(html) {
+            const jsonFiles = [];
             
-            if (!file.name.endsWith('.json')) {
-                showError('请选择JSON文件');
+            // 简单的正则表达式匹配JSON文件
+            const regex = /href="([^"]+\.json)"/gi;
+            let match;
+            
+            while ((match = regex.exec(html)) !== null) {
+                const fileName = match[1];
+                if (!fileName.includes('/') && !fileName.includes('\\')) {
+                    jsonFiles.push(fileName);
+                }
+            }
+            
+            // 去重
+            return [...new Set(jsonFiles)];
+        }
+
+        // 更新JSON文件列表显示
+        function updateJsonFileList(jsonFiles) {
+            if (!jsonFileListElement) return;
+            
+            jsonFileListElement.innerHTML = '';
+            
+            if (jsonFiles.length === 0) {
+                const div = document.createElement('div');
+                div.textContent = '未找到JSON文件';
+                div.className = 'no-data';
+                jsonFileListElement.appendChild(div);
                 return;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    processJsonData(data, '', file.name);
-                } catch (err) {
-                    showError('解析JSON文件失败: ' + err.message);
+            jsonFiles.forEach((fileName, index) => {
+                const button = document.createElement('button');
+                button.textContent = fileName;
+                button.className = 'json-file-btn';
+                
+                if (currentJsonFile === fileName) {
+                    button.classList.add('active');
                 }
-            };
-            reader.onerror = function() {
-                showError('读取文件失败');
-            };
-            reader.readAsText(file);
+                
+                button.addEventListener('click', () => {
+                    loadJsonFile(fileName);
+                });
+                
+                jsonFileListElement.appendChild(button);
+            });
         }
 
-        // 加载数据
-        async function loadData(url, displayName = '') {
-            try {
-                showMessage('正在加载课表数据...', '#3498db');
+        // 显示手动文件选择器
+        function showManualFileSelector() {
+            if (!jsonFileListElement) return;
+            
+            jsonFileListElement.innerHTML = `
+                <div style="color: #666; margin-bottom: 10px;">
+                    未能自动检测到JSON文件，请手动输入文件名：
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="manualFileInput" placeholder="例如: 202409课表.json" style="flex: 1; padding: 8px; border: 2px solid #e9ecef; border-radius: 6px;">
+                    <button id="loadManualFile" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        加载
+                    </button>
+                </div>
+            `;
+            
+            const loadButton = document.getElementById('loadManualFile');
+            const fileInput = document.getElementById('manualFileInput');
+            
+            if (loadButton && fileInput) {
+                loadButton.addEventListener('click', () => {
+                    const fileName = fileInput.value.trim();
+                    if (fileName) {
+                        loadJsonFile(fileName);
+                    }
+                });
                 
-                const response = await fetch(url, {
+                fileInput.addEventListener('keyup', (event) => {
+                    if (event.key === 'Enter') {
+                        const fileName = fileInput.value.trim();
+                        if (fileName) {
+                            loadJsonFile(fileName);
+                        }
+                    }
+                });
+            }
+        }
+
+        // 加载JSON文件
+        async function loadJsonFile(fileName) {
+            try {
+                showMessage(`正在加载: ${fileName}`, '#3498db');
+                currentJsonFile = fileName;
+                
+                const response = await fetch(fileName, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -547,16 +647,33 @@
                 }
                 
                 const data = await response.json();
-                processJsonData(data, url, displayName);
+                processJsonData(data, fileName);
+                
+                // 更新文件列表高亮
+                updateJsonFileListHighlight(fileName);
                 
             } catch (err) {
-                console.error('加载课表失败:', err);
-                showError(`加载课表失败: ${err.message}`);
+                console.error('加载JSON文件失败:', err);
+                showError(`加载文件失败: ${err.message}`);
             }
         }
 
-        // 处理JSON数据 - 修改后的核心函数
-        function processJsonData(data, url, fileName) {
+        // 更新JSON文件列表高亮
+        function updateJsonFileListHighlight(fileName) {
+            if (!jsonFileListElement) return;
+            
+            const buttons = jsonFileListElement.querySelectorAll('.json-file-btn');
+            buttons.forEach(button => {
+                if (button.textContent === fileName) {
+                    button.classList.add('active');
+                } else {
+                    button.classList.remove('active');
+                }
+            });
+        }
+
+        // 处理JSON数据
+        function processJsonData(data, fileName) {
             try {
                 let classes = [];
                 let teachers = [];
@@ -606,15 +723,14 @@
                 
                 // 更新标题
                 if (scheduleTitleElement) {
-                    const displayName = fileName || (url.includes('/') ? url.split('/').pop() : url);
-                    scheduleTitleElement.textContent = `已加载: ${displayName}`;
+                    scheduleTitleElement.textContent = `已加载: ${fileName}`;
                 }
                 
                 // 显示加载成功的消息
                 if (messageElement) {
                     const classCount = classes.length;
                     const teacherCount = teachers.length;
-                    messageElement.textContent = `成功加载课表数据: ${classCount}个班级, ${teacherCount}位教师`;
+                    messageElement.textContent = `成功加载: ${classCount}个班级, ${teacherCount}位教师`;
                     messageElement.style.color = '#27ae60';
                     
                     setTimeout(() => {
@@ -638,7 +754,7 @@
             }
         }
 
-        // 从单独字段提取班级数据 - 兼容旧格式
+        // 从单独字段提取班级数据
         function extractClassesFromSeparateField(classesData) {
             const classes = [];
             
@@ -659,7 +775,6 @@
                 });
             }
             
-            // 按年级和班级排序
             classes.sort((a, b) => {
                 const gradeA = extractGrade(a.name);
                 const gradeB = extractGrade(b.name);
@@ -675,7 +790,7 @@
             return classes;
         }
 
-        // 修改后的extractClasses函数 - 从混合数据中筛选出班级课表
+        // 提取班级课表
         function extractClasses(teachersData) {
             const classes = [];
             
@@ -683,7 +798,6 @@
                 Object.keys(teachersData).forEach((key, index) => {
                     const item = teachersData[key];
                     
-                    // 判断是否为班级课表：name字段包含数字，并且是班级格式
                     if (item && item.data && isClassName(item.name || key)) {
                         classes.push({
                             id: index,
@@ -697,7 +811,6 @@
                 });
             }
             
-            // 按年级和班级排序
             classes.sort((a, b) => {
                 const gradeA = extractGrade(a.name);
                 const gradeB = extractGrade(b.name);
@@ -713,7 +826,7 @@
             return classes;
         }
 
-        // 修改后的extractTeachers函数 - 从混合数据中筛选出教师课表
+        // 提取教师课表
         function extractTeachers(teachersData) {
             const teachers = [];
             
@@ -721,7 +834,6 @@
                 Object.keys(teachersData).forEach((key, index) => {
                     const item = teachersData[key];
                     
-                    // 判断是否为教师课表：不包含班级特征
                     if (item && item.data && !isClassName(item.name || key)) {
                         teachers.push({
                             id: index,
@@ -735,24 +847,22 @@
                 });
             }
             
-            // 按姓名拼音排序
             teachers.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
             
             return teachers;
         }
 
-        // 新增辅助函数：判断是否为班级名称
+        // 判断是否为班级名称
         function isClassName(name) {
             if (!name) return false;
             
-            // 班级名称通常包含"班"字，并且包含数字
             const hasClassCharacter = name.includes('班');
             const hasNumbers = /\d/.test(name);
             
             return hasClassCharacter && hasNumbers;
         }
 
-        // 辅助函数：提取年级数字
+        // 提取年级数字
         function extractGrade(className) {
             if (!className) return 0;
             
@@ -767,7 +877,7 @@
             return gradeMap[match[1]] || 0;
         }
 
-        // 辅助函数：提取班级编号
+        // 提取班级编号
         function extractClassNumber(className) {
             if (!className) return 0;
             
@@ -896,7 +1006,6 @@
                     const td = document.createElement('td');
                     td.innerHTML = cell;
                     
-                    // 添加样式
                     if (colIndex === 0) {
                         td.className = 'period-cell';
                     } else if (cell && cell.trim() !== '') {
@@ -913,7 +1022,6 @@
             
             scheduleTableElement.appendChild(tbody);
             
-            // 更新列表高亮
             updateClassesList();
             updateTeachersList();
         }
@@ -927,19 +1035,16 @@
                 return;
             }
             
-            // 过滤班级
             const filteredClasses = allClasses.filter(classData => 
                 classData.name.toLowerCase().includes(searchTerm) ||
                 (classData.description && classData.description.toLowerCase().includes(searchTerm))
             );
             
-            // 过滤教师
             const filteredTeachers = allTeachers.filter(teacher => 
                 teacher.name.toLowerCase().includes(searchTerm) ||
                 (teacher.description && teacher.description.toLowerCase().includes(searchTerm))
             );
             
-            // 更新列表显示
             updateFilteredLists(filteredClasses, filteredTeachers);
         }
 
@@ -959,7 +1064,6 @@
 
         // 更新过滤后的列表
         function updateFilteredLists(filteredClasses, filteredTeachers) {
-            // 更新班级列表
             if (classesListElement) {
                 classesListElement.innerHTML = '';
                 
@@ -989,7 +1093,6 @@
                 }
             }
             
-            // 更新教师列表
             if (teachersListElement) {
                 teachersListElement.innerHTML = '';
                 
