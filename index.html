@@ -6,6 +6,7 @@
     <title>教师班级课表综合查询系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* 样式部分与之前相同，保持不变 */
         * {
             margin: 0;
             padding: 0;
@@ -1239,7 +1240,10 @@
                         'teacher.json',
                         '2024秋季课表.json',
                         '秋季课表.json',
-                        'school_timetable.json'
+                        'school_timetable.json',
+                        'timetable_data.json',
+                        '课程表.json',
+                        'class_schedule.json'
                     ];
                     
                     for (const fileName of testFiles) {
@@ -1373,59 +1377,11 @@
                 const rawData = await response.arrayBuffer();
                 console.log('原始数据长度:', rawData.byteLength, '字节');
                 
-                // 尝试多种编码方式解析
-                let jsonData = null;
-                let error = null;
-                
-                // 尝试不同的编码
-                const encodings = [
-                    { name: 'UTF-8', decoder: new TextDecoder('utf-8') },
-                    { name: 'UTF-8 (带BOM)', decoder: new TextDecoder('utf-8-sig') },
-                    { name: 'GBK', decoder: new TextDecoder('gbk') },
-                    { name: 'GB2312', decoder: new TextDecoder('gbk') }
-                ];
-                
-                for (let i = 0; i < encodings.length; i++) {
-                    try {
-                        const decoder = encodings[i].decoder;
-                        const text = decoder.decode(rawData);
-                        console.log(`尝试编码: ${encodings[i].name}, 文本长度: ${text.length} 字符`);
-                        
-                        // 检查是否有BOM字符
-                        if (text.charCodeAt(0) === 0xFEFF) {
-                            console.log('检测到UTF-8 BOM，已自动移除');
-                        }
-                        
-                        // 尝试解析JSON
-                        jsonData = JSON.parse(text);
-                        console.log(`使用 ${encodings[i].name} 编码解析成功`);
-                        break;
-                    } catch (err) {
-                        error = err;
-                        console.log(`${encodings[i].name} 编码解析失败:`, err.message);
-                        continue;
-                    }
-                }
+                // 解析JSON数据
+                const jsonData = await decodeAndParseJson(rawData, url);
                 
                 if (!jsonData) {
-                    // 如果所有编码都失败，尝试手动清理BOM
-                    try {
-                        const decoder = new TextDecoder('utf-8');
-                        let text = decoder.decode(rawData);
-                        
-                        // 移除BOM
-                        if (text.charCodeAt(0) === 0xFEFF) {
-                            text = text.substring(1);
-                        }
-                        
-                        // 清理非JSON字符
-                        const cleanedText = cleanJsonText(text);
-                        jsonData = JSON.parse(cleanedText);
-                        console.log('通过清理文本解析成功');
-                    } catch (finalErr) {
-                        console.error('最终解析失败:', finalErr);
-                        throw new Error(`JSON解析失败: ${error ? error.message : '未知错误'}`);
-                    }
+                    throw new Error('JSON解析失败');
                 }
                 
                 // 更新当前文件信息
@@ -1439,14 +1395,83 @@
                 
             } catch (err) {
                 console.error('加载课表失败:', err);
-                showError(`加载失败: ${err.message}<br><small>请检查文件编码是否为UTF-8或GBK，并确保JSON格式正确</small>`);
+                showError(`加载失败: ${err.message}<br><small>请检查JSON格式是否正确</small>`);
             } finally {
                 hideLoading();
             }
         }
         
+        // 解码和解析JSON数据
+        async function decodeAndParseJson(rawData, url) {
+            try {
+                // 尝试不同的编码方式
+                const encodings = [
+                    { name: 'UTF-8', decoder: 'utf-8' },
+                    { name: 'GBK', decoder: 'gbk' },
+                    { name: 'GB2312', decoder: 'gb18030' }
+                ];
+                
+                for (let i = 0; i < encodings.length; i++) {
+                    try {
+                        const decoder = new TextDecoder(encodings[i].decoder);
+                        let text = decoder.decode(rawData);
+                        
+                        console.log(`尝试 ${encodings[i].name} 编码，文本长度: ${text.length} 字符`);
+                        
+                        // 处理UTF-8 BOM
+                        if (text.charCodeAt(0) === 0xFEFF) {
+                            console.log('检测到UTF-8 BOM，已自动移除');
+                            text = text.substring(1);
+                        }
+                        
+                        // 清理JSON文本
+                        text = cleanJsonText(text);
+                        
+                        const jsonData = JSON.parse(text);
+                        console.log(`${encodings[i].name} 编码解析成功`);
+                        return jsonData;
+                    } catch (err) {
+                        console.log(`${encodings[i].name} 编码解析失败:`, err.message);
+                        continue;
+                    }
+                }
+                
+                // 如果所有标准编码都失败，尝试强制UTF-8
+                try {
+                    const text = new TextDecoder('utf-8', { fatal: false }).decode(rawData);
+                    console.log('强制UTF-8解码，文本长度:', text.length);
+                    
+                    const cleanedText = cleanJsonText(text);
+                    return JSON.parse(cleanedText);
+                } catch (utf8Err) {
+                    console.error('强制UTF-8解码失败:', utf8Err.message);
+                }
+                
+                // 如果还不行，尝试多种方法清理文本
+                try {
+                    const text = new TextDecoder('iso-8859-1', { fatal: false }).decode(rawData);
+                    console.log('尝试ISO-8859-1解码，文本长度:', text.length);
+                    
+                    const cleanedText = cleanJsonText(text);
+                    return JSON.parse(cleanedText);
+                } catch (isoErr) {
+                    console.error('ISO-8859-1解码失败:', isoErr.message);
+                }
+                
+                return null;
+                
+            } catch (err) {
+                console.error('JSON解析过程失败:', err);
+                throw new Error(`JSON解析失败: ${err.message}`);
+            }
+        }
+        
         // 清理JSON文本
         function cleanJsonText(text) {
+            if (!text || typeof text !== 'string') {
+                return '';
+            }
+            
             // 移除BOM
             if (text.charCodeAt(0) === 0xFEFF) {
                 text = text.substring(1);
@@ -1465,6 +1490,22 @@
                 const jsonStart = text.search(/[{[]/);
                 if (jsonStart !== -1) {
                     text = text.substring(jsonStart);
+                } else {
+                    // 如果没有找到，尝试移除可能的前缀
+                    text = text.replace(/^[^{[]*/, '');
+                }
+            }
+            
+            // 确保文本以有效的JSON字符结尾
+            const lastChar = text.charAt(text.length - 1);
+            if (lastChar !== '}' && lastChar !== ']') {
+                const jsonEnd = text.lastIndexOf('}') > text.lastIndexOf(']') ? 
+                               text.lastIndexOf('}') : text.lastIndexOf(']');
+                if (jsonEnd !== -1) {
+                    text = text.substring(0, jsonEnd + 1);
+                } else {
+                    // 如果没有找到，尝试移除可能的后缀
+                    text = text.replace(/[^}\]]*$/, '');
                 }
             }
             
@@ -1975,6 +2016,11 @@
         // 页面加载完成
         document.addEventListener('DOMContentLoaded', function() {
             initEventListeners();
+            
+            // 页面加载时自动扫描一次
+            setTimeout(() => {
+                console.log('页面加载完成，准备初始化');
+            }, 100);
         });
     </script>
 </body>
