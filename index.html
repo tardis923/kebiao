@@ -279,7 +279,7 @@
             background: white;
         }
         
-        /* 优化表格响应式 */
+        /* 优化表格响应式 - 新增统一宽度和高度的设置 */
         .responsive-table {
             width: 100%;
             overflow-x: auto;
@@ -289,6 +289,25 @@
             width: 100%;
             border-collapse: collapse;
             min-width: 300px;
+            table-layout: fixed; /* 固定表格布局，使列宽平均分配 */
+        }
+        
+        /* 节次列保持固定宽度 */
+        th:first-child,
+        td:first-child {
+            width: 60px; /* 节次列固定宽度 */
+            min-width: 60px;
+        }
+        
+        /* 星期一到星期五列宽平均分配 */
+        th:not(:first-child),
+        td:not(:first-child) {
+            width: 20%; /* 5列平分100%宽度，平均分配 */
+        }
+        
+        /* 统一行高 */
+        tbody tr {
+            height: 60px; /* 统一的行高 */
         }
         
         th {
@@ -308,15 +327,14 @@
             border: 1px solid #e9ecef;
             text-align: center;
             word-break: break-word;
-            font-size: 0.6em;
+            font-size: 0.85em;
+            vertical-align: middle; /* 垂直居中 */
         }
         
         .period-cell {
             background: #f8f9fa;
             font-weight: 600;
             color: #495057;
-            width: 40px;
-            min-width: 40px;
         }
         
         .course-cell {
@@ -439,49 +457,6 @@
             color: white;
         }
         
-        /* 手机端底部导航 */
-        .mobile-bottom-nav {
-            display: none;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: white;
-            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-            z-index: 999;
-        }
-        
-        .mobile-nav-items {
-            display: flex;
-        }
-        
-        .mobile-nav-item {
-            flex: 1;
-            padding: 12px 0;
-            text-align: center;
-            border: none;
-            background: none;
-            color: #495057;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .mobile-nav-item:hover {
-            background: #f8f9fa;
-        }
-        
-        .mobile-nav-item.active {
-            color: #667eea;
-            border-top: 2px solid #667eea;
-        }
-        
-        .mobile-nav-item i {
-            display: block;
-            font-size: 1.2em;
-            margin-bottom: 4px;
-        }
-        
         /* 响应式设计 */
         @media (max-width: 768px) {
             body {
@@ -523,13 +498,8 @@
                 display: flex;
             }
             
-            .mobile-bottom-nav {
-                display: block;
-            }
-            
             .content-area {
                 padding: 15px;
-                padding-bottom: 15px; /* 为底部导航留出空间 */
             }
             
             .controls {
@@ -562,20 +532,29 @@
                 width: 95%;
             }
             
-            /* 优化表格显示 */
-            th {
-                padding: 8px 5px;
-                font-size: 0.8em;
+            /* 移动端表格调整 */
+            table {
+                min-width: 250px;
             }
             
-            td {
+            /* 移动端节次列更窄 */
+            th:first-child,
+            td:first-child {
+                width: 40px;
+                min-width: 40px;
+            }
+            
+            /* 移动端行高稍小 */
+            tbody tr {
+                height: 50px;
+            }
+            
+            th, td {
                 padding: 8px 5px;
-                font-size: 0.8em;
+                font-size: 0.9em;
             }
             
             .period-cell {
-                width: 30px;
-                min-width: 30px;
                 padding: 8px 3px;
             }
         }
@@ -599,11 +578,23 @@
             }
             
             table {
-                min-width: 250px;
+                min-width: 200px;
             }
             
             th, td {
                 padding: 6px 3px;
+                font-size: 0.85em;
+            }
+            
+            /* 小屏幕设备进一步调整 */
+            th:first-child,
+            td:first-child {
+                width: 35px;
+                min-width: 35px;
+            }
+            
+            tbody tr {
+                height: 45px;
             }
         }
     </style>
@@ -727,8 +718,6 @@
         </div>
     </div>
 
-
-
     <!-- JSON文件选择模态框 -->
     <div id="jsonFileModal" class="modal">
         <div class="modal-content">
@@ -776,11 +765,6 @@
         let mobileResetSearchBtn = null;
         let mobileClassesList = null;
         let mobileTeachersList = null;
-        let mobileBottomNav = null;
-        let mobileNavClasses = null;
-        let mobileNavTeachers = null;
-        let mobileNavSearch = null;
-        let mobileNavMenu = null;
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -816,11 +800,6 @@
             mobileResetSearchBtn = document.getElementById('mobileResetSearch');
             mobileClassesList = document.getElementById('mobileClassesList');
             mobileTeachersList = document.getElementById('mobileTeachersList');
-            mobileBottomNav = document.getElementById('mobileBottomNav');
-            mobileNavClasses = document.getElementById('mobileNavClasses');
-            mobileNavTeachers = document.getElementById('mobileNavTeachers');
-            mobileNavSearch = document.getElementById('mobileNavSearch');
-            mobileNavMenu = document.getElementById('mobileNavMenu');
         }
 
         // 初始化事件监听器
@@ -886,35 +865,6 @@
                     mobileResetSearchBtn.addEventListener('click', resetMobileSearch);
                 }
                 
-                // 移动端底部导航事件
-                if (mobileNavClasses) {
-                    mobileNavClasses.addEventListener('click', function() {
-                        showMobileSection('classes');
-                        closeMobileMenu();
-                    });
-                }
-                
-                if (mobileNavTeachers) {
-                    mobileNavTeachers.addEventListener('click', function() {
-                        showMobileSection('teachers');
-                        closeMobileMenu();
-                    });
-                }
-                
-                if (mobileNavSearch) {
-                    mobileNavSearch.addEventListener('click', function() {
-                        showMobileSection('search');
-                        closeMobileMenu();
-                        mobileSearchInput.focus();
-                    });
-                }
-                
-                if (mobileNavMenu) {
-                    mobileNavMenu.addEventListener('click', function() {
-                        toggleMobileMenu();
-                    });
-                }
-                
                 // 点击菜单外区域关闭菜单
                 document.addEventListener('click', function(event) {
                     if (mobileSidebar.classList.contains('active') && 
@@ -945,32 +895,6 @@
             
             mobileSidebar.classList.remove('active');
             mobileMenuBtn.classList.remove('active');
-        }
-
-        // 显示移动端特定部分
-        function showMobileSection(section) {
-            if (!mobileBottomNav) return;
-            
-            // 移除所有激活状态
-            const navItems = mobileBottomNav.querySelectorAll('.mobile-nav-item');
-            navItems.forEach(item => item.classList.remove('active'));
-            
-            // 激活当前部分
-            if (section === 'classes') {
-                mobileNavClasses.classList.add('active');
-                // 滚动到移动端班级列表
-                mobileSidebar.scrollTo(0, 0);
-            } else if (section === 'teachers') {
-                mobileNavTeachers.classList.add('active');
-                // 滚动到移动端教师列表
-                mobileSidebar.scrollTo(0, mobileClassesList.offsetHeight + 100);
-            } else if (section === 'search') {
-                mobileNavSearch.classList.add('active');
-                // 滚动到移动端搜索
-                mobileSidebar.scrollTo(0, mobileClassesList.offsetHeight + mobileTeachersList.offsetHeight + 200);
-            } else if (section === 'menu') {
-                mobileNavMenu.classList.add('active');
-            }
         }
 
         // 处理移动端搜索
@@ -1084,75 +1008,76 @@
             }
         }
 
+        // 获取JSON文件列表
         async function getJsonFiles() {
-    try {
-        const fileList = [];
-        
-        // 首先尝试预定义的文件
-        const defaultFiles = [
-            '202409课表.json',
-            '202410课表.json',
-            '202411课表.json',
-            '课表.json',
-            'schedule.json',
-            'timetable.json',
-            'data.json'
-        ];
-        
-        for (const fileName of defaultFiles) {
             try {
-                const response = await fetch(fileName, { 
-                    method: 'HEAD',
-                    cache: 'no-cache'
-                });
+                const fileList = [];
                 
-                if (response.ok) {
-                    fileList.push(fileName);
-                }
-            } catch (err) {
-                // 继续尝试下一个文件
-            }
-        }
-        
-        // 如果已经找到文件，直接返回
-        if (fileList.length > 0) {
-            return fileList;
-        }
-        
-        // 尝试获取目录列表
-        try {
-            const response = await fetch('/');
-            if (response.ok) {
-                const text = await response.text();
+                // 首先尝试预定义的文件
+                const defaultFiles = [
+                    '202409课表.json',
+                    '202410课表.json',
+                    '202411课表.json',
+                    '课表.json',
+                    'schedule.json',
+                    'timetable.json',
+                    'data.json'
+                ];
                 
-                // 从HTML中提取.json文件
-                const regex = /href="([^"]+\.json)"/gi;
-                let match;
-                const foundFiles = [];
-                
-                while ((match = regex.exec(text)) !== null) {
-                    const fileName = match[1];
-                    // 过滤掉路径中的文件
-                    if (!fileName.includes('/') && !fileName.includes('\\')) {
-                        foundFiles.push(fileName);
+                for (const fileName of defaultFiles) {
+                    try {
+                        const response = await fetch(fileName, { 
+                            method: 'HEAD',
+                            cache: 'no-cache'
+                        });
+                        
+                        if (response.ok) {
+                            fileList.push(fileName);
+                        }
+                    } catch (err) {
+                        // 继续尝试下一个文件
                     }
                 }
                 
-                // 去重并添加到列表
-                const uniqueFiles = [...new Set(foundFiles)];
-                fileList.push(...uniqueFiles);
+                // 如果已经找到文件，直接返回
+                if (fileList.length > 0) {
+                    return fileList;
+                }
+                
+                // 尝试获取目录列表
+                try {
+                    const response = await fetch('/');
+                    if (response.ok) {
+                        const text = await response.text();
+                        
+                        // 从HTML中提取.json文件
+                        const regex = /href="([^"]+\.json)"/gi;
+                        let match;
+                        const foundFiles = [];
+                        
+                        while ((match = regex.exec(text)) !== null) {
+                            const fileName = match[1];
+                            // 过滤掉路径中的文件
+                            if (!fileName.includes('/') && !fileName.includes('\\')) {
+                                foundFiles.push(fileName);
+                            }
+                        }
+                        
+                        // 去重并添加到列表
+                        const uniqueFiles = [...new Set(foundFiles)];
+                        fileList.push(...uniqueFiles);
+                    }
+                } catch (dirErr) {
+                    console.log('无法获取目录列表，将只使用预定义文件');
+                }
+                
+                return fileList;
+                
+            } catch (err) {
+                console.error('扫描文件失败:', err);
+                return [];
             }
-        } catch (dirErr) {
-            console.log('无法获取目录列表，将只使用预定义文件');
         }
-        
-        return fileList;
-        
-    } catch (err) {
-        console.error('扫描文件失败:', err);
-        return [];
-    }
-}
 
         // 在模态框中显示消息
         function showMessageInModal(text) {
