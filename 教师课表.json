@@ -2,7 +2,7 @@
   "teachers": {
     "鲍芳": {
       "name": "鲍芳",
-      "description": "鲍芳的课表",
+      "description": "14节",
       "rows": 8,
       "cols": 6,
       "data": [
@@ -18,7 +18,7 @@
     },
     "曹佳玥": {
       "name": "曹佳玥",
-      "description": "曹佳玥的课表",
+      "description": "8节",
       "rows": 8,
       "cols": 6,
       "data": [
@@ -34,7 +34,7 @@
     },
     "毕钰玲": {
       "name": "毕钰玲",
-      "description": "毕钰玲的课表",
+      "description": "20节",
       "rows": 8,
       "cols": 6,
       "data": [
@@ -51,7 +51,7 @@
   },
   "metadata": {
     "source_file": "教师课表.xls",
-    "conversion_time": "2026-04-05T14:22:43",
+    "conversion_time": "2026-04-05T14:37:55",
     "total_teachers": 3,
     "format": "8行6列教师课表JSON"
   }
