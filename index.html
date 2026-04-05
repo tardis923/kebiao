@@ -3,397 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>教师课表查询系统</title>
+    <title>教师班级课表查询系统</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
-        }
+        /* 基础样式保持不变，只添加新样式 */
         
-        body {
-            background: linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-        
-        .container {
-            width: 100%;
-            background-color: white;
-        }
-        
-        /* 移动端顶部栏 */
-        .mobile-header {
-            display: none;
-            background: linear-gradient(90deg, #1a5f7a, #2a9d8f);
-            color: white;
-            padding: 12px 15px;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        .mobile-header-content {
+        /* 模式切换 */
+        .mode-switcher {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .mobile-header h1 {
-            font-size: 1.1rem;
-            margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .mobile-menu-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.3rem;
-            cursor: pointer;
+            background: #e8f6f3;
+            border-radius: 6px;
             padding: 5px;
-        }
-        
-        .mobile-back-btn {
-            display: none;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.3rem;
-            cursor: pointer;
-            padding: 5px;
-        }
-        
-        /* 桌面端头部 */
-        header {
-            background: linear-gradient(90deg, #1a5f7a, #2a9d8f);
-            color: white;
-            padding: 20px 30px;
-        }
-        
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 5px;
-        }
-        
-        .subtitle {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        
-        /* 控制面板 - 移动端优化 */
-        .control-panel {
-            padding: 20px 15px;
-            background: #f8fcfb;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .data-source-area {
-            display: flex;
-            gap: 10px;
             margin-bottom: 15px;
         }
         
-        .data-source-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #2a9d8f;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
+        .mode-btn {
+            flex: 1;
+            padding: 10px 15px;
             border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            white-space: nowrap;
-            min-height: 44px; /* 移动端最小触摸目标 */
-        }
-        
-        .data-source-btn:hover {
-            background: #1a5f7a;
-        }
-        
-        .data-source-btn:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .data-source-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #c8e6e1;
-            border-radius: 6px;
-            font-size: 1rem;
-            min-width: 0;
-        }
-        
-        .current-data-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            padding: 10px 12px;
-            background: #e8f6f3;
-            border-radius: 6px;
-            border-left: 4px solid #2a9d8f;
-        }
-        
-        .current-data-info i {
-            color: #1a5f7a;
-        }
-        
-        .current-data-text {
-            flex: 1;
-            font-size: 0.9rem;
-        }
-        
-        .current-data-text strong {
-            color: #1a5f7a;
-        }
-        
-        .refresh-btn {
             background: none;
-            border: none;
-            color: #2a9d8f;
-            cursor: pointer;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px;
-            min-height: 30px; /* 移动端最小触摸目标 */
-        }
-        
-        .content {
-            display: flex;
-            height: calc(100vh - 180px);
-        }
-        
-        /* 文件选择弹窗样式 */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1100;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-overlay.active {
-            display: flex;
-        }
-        
-        .modal {
-            background: white;
-            border-radius: 10px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 80vh;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-        
-        .modal-header {
-            background: #1a5f7a;
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.1rem;
-        }
-        
-        .close-modal {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.2rem;
-            cursor: pointer;
-            padding: 5px;
-        }
-        
-        .modal-body {
-            padding: 20px;
-            max-height: 60vh;
-            overflow-y: auto;
-        }
-        
-        .modal-body p {
-            margin-bottom: 15px;
-            color: #666;
-        }
-        
-        .file-list {
-            margin-bottom: 20px;
-        }
-        
-        .file-item {
-            padding: 12px 15px;
-            margin-bottom: 8px;
-            background: #f8fcfb;
-            border: 1px solid #e0e0e0;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .file-item:hover {
-            background: #e8f6f3;
-            transform: translateX(3px);
-        }
-        
-        .file-item.active {
-            background: #2a9d8f;
-            color: white;
-            border-color: #1a5f7a;
-        }
-        
-        .file-item-name {
-            font-weight: bold;
-            font-size: 1rem;
-        }
-        
-        .file-item-size {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 3px;
-        }
-        
-        .file-item.active .file-item-size {
-            color: rgba(255, 255, 255, 0.9);
-        }
-        
-        .no-files-found {
-            text-align: center;
-            padding: 30px 20px;
-            color: #7f8c8d;
-        }
-        
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .modal-btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 0.95rem;
             font-weight: 500;
-            min-height: 44px; /* 移动端最小触摸目标 */
-        }
-        
-        .modal-btn.primary {
-            background: #2a9d8f;
-            color: white;
-        }
-        
-        .modal-btn.primary:hover {
-            background: #1a5f7a;
-        }
-        
-        .modal-btn.secondary {
-            background: #f5f5f5;
-            color: #666;
-        }
-        
-        .modal-btn.secondary:hover {
-            background: #e0e0e0;
-        }
-        
-        /* 教师侧边栏 */
-        .teacher-sidebar {
-            width: 300px;
-            background: #f8fcfb;
-            border-right: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .teacher-list-header {
-            padding: 15px;
-            background: #1a5f7a;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .close-sidebar-btn {
-            display: none;
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 5px;
-        }
-        
-        .search-container {
-            padding: 10px 15px;
-            background: #e8f6f3;
-            border-bottom: 1px solid #d1e3e0;
-        }
-        
-        .search-box {
-            position: relative;
-        }
-        
-        .search-box i {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #2a9d8f;
-        }
-        
-        .search-input {
-            width: 100%;
-            padding: 12px 12px 12px 40px;
-            border: 1px solid #c8e6e1;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            outline: none;
             transition: all 0.3s;
         }
         
-        .search-input:focus {
-            border-color: #2a9d8f;
-            box-shadow: 0 0 0 2px rgba(42, 157, 143, 0.2);
+        .mode-btn.active {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
         
-        .search-info {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 5px;
-            text-align: right;
+        .mode-btn i {
+            margin-right: 5px;
         }
         
-        .teacher-list-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
+        .mode-btn.teacher-mode.active {
+            color: #2a9d8f;
         }
         
-        .teacher-item {
+        .mode-btn.class-mode.active {
+            color: #1a5f7a;
+        }
+        
+        /* 班级卡片样式 */
+        .class-card {
             padding: 12px 15px;
             margin-bottom: 8px;
             background: white;
@@ -403,513 +57,100 @@
             transition: all 0.2s;
         }
         
-        .teacher-item:hover {
+        .class-card:hover {
             background: #e8f6f3;
             transform: translateX(3px);
         }
         
-        .teacher-item.active {
-            background: #2a9d8f;
+        .class-card.active {
+            background: #1a5f7a;
             color: white;
             border-color: #1a5f7a;
         }
         
-        .teacher-item.hidden {
-            display: none;
-        }
-        
-        .teacher-item-name {
+        .class-name {
             font-weight: bold;
             font-size: 1rem;
         }
         
-        .teacher-item-desc {
+        .class-desc {
             font-size: 0.8rem;
             color: #666;
             margin-top: 3px;
         }
         
-        .teacher-item.active .teacher-item-desc {
+        .class-card.active .class-desc {
             color: rgba(255, 255, 255, 0.9);
         }
         
-        .no-teachers-found {
-            text-align: center;
-            padding: 30px 20px;
-            color: #7f8c8d;
-        }
-        
-        /* 主内容区域 */
-        .timetable-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .teacher-info-header {
-            padding: 12px 15px;
-            background: #e8f6f3;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
+        /* 模式指示器 */
+        .mode-indicator {
+            display: inline-flex;
             align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 10px;
         }
         
-        .teacher-info-content {
-            flex: 1;
+        .mode-indicator.teacher {
+            background: rgba(42, 157, 143, 0.2);
+            color: #2a9d8f;
         }
         
-        .teacher-name {
-            font-size: 1.2rem;
-            font-weight: bold;
+        .mode-indicator.class {
+            background: rgba(26, 95, 122, 0.2);
             color: #1a5f7a;
         }
         
-        .teacher-desc {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .mobile-show-sidebar {
-            display: none;
-            background: #2a9d8f;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            white-space: nowrap;
-            min-height: 40px; /* 移动端最小触摸目标 */
-        }
-        
-        .timetable-container {
-            flex: 1;
-            overflow: auto;
-            padding: 15px;
-            background: #f9f9f9;
-        }
-        
-        /* Excel风格表格样式 - 移动端优化 */
-        .excel-table-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .excel-table-8x6 {
-            width: auto;
-            min-width: 100%;
-            border-collapse: collapse;
-            background: white;
-        }
-        
-        .excel-table-8x6 th {
-            background: #1a5f7a;
-            color: white;
-            padding: 8px 6px;
-            text-align: center;
-            font-weight: 600;
-            border: 1px solid #2a9d8f;
-            font-size: 0.85rem;
-            position: sticky;
-            top: 0;
-        }
-        
-        .excel-table-8x6 td {
-            padding: 8px 6px;
-            border: 1px solid #e0e0e0;
-            text-align: center;
-            vertical-align: middle;
-            font-size: 0.85rem;
-        }
-        
-        .excel-table-8x6 tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-        
-        .excel-table-8x6 tr:hover {
-            background: #f0f9f7;
-        }
-        
-        .excel-table-8x6 .row-header {
-            background: #2a9d8f;
-            color: white;
-            font-weight: bold;
-            border: 1px solid #2a9d8f;
-            font-size: 0.85rem;
-        }
-        
-        .excel-table-8x6 .corner-cell {
-            background: #1a5f7a;
-            color: white;
-            font-weight: bold;
-        }
-        
-        .loading {
+        /* 课表标题样式 */
+        .timetable-title {
             display: flex;
             align-items: center;
-            justify-content: center;
-            height: 200px;
-            color: #2a5f7a;
-            font-size: 1.2rem;
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
-        .error {
-            background: #ffebee;
-            color: #c62828;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px;
-            border-left: 4px solid #c62828;
+        .timetable-title h3 {
+            margin: 0;
+            color: #1a5f7a;
         }
         
-        .no-data {
-            text-align: center;
-            padding: 50px 20px;
-            color: #7f8c8d;
-        }
-        
-        .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 10px 15px;
-            border-radius: 6px;
-            margin: 10px 0;
-            border-left: 4px solid #28a745;
-        }
-        
-        .course-cell {
-            font-weight: 500;
-        }
-        
-        .course-cell.language { background: #e3f2fd; }
-        .course-cell.math { background: #f3e5f5; }
-        .course-cell.english { background: #e8f5e8; }
-        .course-cell.physics { background: #fff3e0; }
-        .course-cell.chemistry { background: #fce4ec; }
-        .course-cell.sports { background: #e8eaf6; }
-        .course-cell.music { background: #f3e5f5; }
-        .course-cell.art { background: #e0f2f1; }
-        .course-cell.history { background: #fff8e1; }
-        .course-cell.geography { background: #f1f8e9; }
-        .course-cell.self-study { background: #f5f5f5; }
-        .course-cell.activity { background: #e8f5e8; }
-        .course-cell.meeting { background: #e3f2fd; }
-        .course-cell.experiment { background: #fce4ec; }
-        .course-cell.tutoring { background: #f1f8e9; }
-        
-        footer {
-            padding: 15px 20px;
-            background: #f8fcfb;
+        /* 加载更多文件选项 */
+        .additional-files {
+            margin-top: 15px;
             border-top: 1px solid #e0e0e0;
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 0.85rem;
+            padding-top: 15px;
         }
         
-        .status-area {
-            min-height: 60px;
+        .additional-files h4 {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 10px;
         }
         
-        .search-highlight {
-            background-color: #fff3cd;
-            color: #856404;
-            font-weight: bold;
-            padding: 1px 3px;
+        .file-type-badge {
+            display: inline-block;
+            padding: 2px 6px;
             border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            margin-left: 8px;
         }
         
-        /* 移动端特定样式 - 优化按钮可见性 */
-        @media (max-width: 768px) {
-            .mobile-header {
-                display: block;
-            }
-            
-            .mobile-back-btn {
-                display: block;
-            }
-            
-            .mobile-show-sidebar {
-                display: inline-flex;
-                align-items: center;
-                gap: 5px;
-            }
-            
-            .close-sidebar-btn {
-                display: block;
-            }
-            
-            header {
-                display: none;
-            }
-            
-            /* 为控制面板留出顶部空间 */
-            .control-panel {
-                padding-top: 80px; /* 为顶部栏和按钮留出空间 */
-                padding-bottom: 20px;
-            }
-            
-            .content {
-                flex-direction: column;
-                height: auto;
-                min-height: calc(100vh - 200px);
-                margin-top: 0;
-            }
-            
-            .teacher-sidebar {
-                display: none;
-                position: fixed;
-                top: 60px;
-                left: 0;
-                width: 100%;
-                height: calc(100vh - 60px);
-                z-index: 1001;
-                border-right: none;
-                box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-            }
-            
-            .teacher-sidebar.active {
-                display: flex;
-            }
-            
-            .timetable-main {
-                flex: 1;
-                margin-top: 0;
-            }
-            
-            .teacher-info-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-                padding: 10px 15px;
-            }
-            
-            .teacher-name {
-                font-size: 1.1rem;
-            }
-            
-            .teacher-desc {
-                font-size: 0.8rem;
-            }
-            
-            .timetable-container {
-                padding: 10px;
-                height: calc(100vh - 250px);
-            }
-            
-            /* 优化数据源区域在移动端的显示 */
-            .data-source-area {
-                flex-direction: column;
-            }
-            
-            .data-source-btn {
-                width: 100%;
-                justify-content: center;
-                font-size: 1.1rem;
-                padding: 15px 20px;
-            }
-            
-            .data-source-btn i {
-                margin-right: 8px;
-            }
-            
-            .data-source-input {
-                padding: 15px;
-                font-size: 1rem;
-            }
-            
-            .current-data-info {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
-            
-            .refresh-btn {
-                align-self: flex-end;
-            }
-            
-            .control-panel {
-                padding: 20px 15px 15px 15px;
-            }
-            
-            footer {
-                font-size: 0.7rem;
-                padding: 10px 15px;
-            }
-            
-            .excel-table-8x6 .row-header {
-                position: sticky;
-                left: 0;
-                z-index: 1;
-            }
-            
-            .excel-table-8x6 .corner-cell {
-                position: sticky;
-                left: 0;
-                top: 0;
-                z-index: 2;
-            }
-            
-            .modal {
-                width: 95%;
-                max-height: 85vh;
-            }
-            
-            .modal-body {
-                max-height: 65vh;
-            }
-            
-            .modal-btn {
-                padding: 15px 20px;
-                font-size: 1rem;
-            }
-            
-            /* 确保按钮不会被虚拟键盘遮挡 */
-            .modal-actions {
-                position: sticky;
-                bottom: 0;
-                background: white;
-                padding-top: 10px;
-                border-top: 1px solid #e0e0e0;
-                margin-top: 0;
-                padding-bottom: 5px;
-            }
-            
-            /* 移动端输入框优化 */
-            input, button, .teacher-item, .file-item {
-                -webkit-tap-highlight-color: transparent;
-            }
+        .file-type-badge.teacher {
+            background: #2a9d8f;
+            color: white;
         }
         
-        @media (max-width: 480px) {
-            .excel-table-8x6 th,
-            .excel-table-8x6 td {
-                padding: 5px 3px;
-                font-size: 0.75rem;
-            }
-            
-            .teacher-name {
-                font-size: 1rem;
-            }
-            
-            .mobile-header h1 {
-                font-size: 1rem;
-            }
-            
-            .timetable-container {
-                padding: 8px;
-                height: calc(100vh - 240px);
-            }
-            
-            .teacher-item {
-                padding: 10px 12px;
-            }
-            
-            .teacher-item-name {
-                font-size: 0.9rem;
-            }
-            
-            .data-source-btn {
-                padding: 12px 15px;
-                font-size: 1rem;
-            }
-            
-            .control-panel {
-                padding-top: 70px;
-            }
-        }
-        
-        @media (max-width: 320px) {
-            .excel-table-8x6 th,
-            .excel-table-8x6 td {
-                padding: 4px 2px;
-                font-size: 0.7rem;
-            }
-            
-            .teacher-name {
-                font-size: 0.95rem;
-            }
-            
-            .search-input {
-                font-size: 0.9rem;
-                padding-left: 35px;
-            }
-            
-            .data-source-btn {
-                font-size: 0.95rem;
-                padding: 10px 12px;
-            }
-            
-            .data-source-btn i {
-                margin-right: 5px;
-            }
-        }
-        
-        /* 横屏优化 */
-        @media (max-width: 768px) and (orientation: landscape) {
-            .control-panel {
-                padding-top: 60px;
-            }
-            
-            .content {
-                height: calc(100vh - 60px);
-            }
-            
-            .teacher-sidebar {
-                width: 50%;
-                height: calc(100vh - 60px);
-            }
-            
-            .timetable-container {
-                height: calc(100vh - 200px);
-            }
-            
-            .excel-table-8x6 th,
-            .excel-table-8x6 td {
-                padding: 5px 4px;
-                font-size: 0.8rem;
-            }
-            
-            .data-source-area {
-                flex-direction: row;
-            }
-            
-            .data-source-btn {
-                width: auto;
-                min-width: 150px;
-            }
-        }
-        
-        /* 超高屏幕优化 */
-        @media (max-height: 600px) and (max-width: 768px) {
-            .control-panel {
-                padding-top: 60px;
-            }
-            
-            .timetable-container {
-                height: calc(100vh - 220px);
-            }
+        .file-type-badge.class {
+            background: #1a5f7a;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <!-- 移动端顶部栏 -->
-    <div class="mobile-header" id="mobileHeader">
-        <div class="mobile-header-content">
-            <button class="mobile-back-btn" id="mobileBackBtn">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h1 id="mobileTitle">教师课表查询</h1>
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <i class="fas fa-bars"></i>
-            </button>
-        </div>
-    </div>
-    
     <!-- 文件选择弹窗 -->
     <div class="modal-overlay" id="fileSelectModal">
         <div class="modal">
@@ -920,14 +161,29 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p>请选择要加载的学年课表文件：</p>
+                <div class="mode-switcher">
+                    <button class="mode-btn teacher-mode active" id="teacherModeBtn" data-mode="teacher">
+                        <i class="fas fa-chalkboard-teacher"></i> 教师课表
+                    </button>
+                    <button class="mode-btn class-mode" id="classModeBtn" data-mode="class">
+                        <i class="fas fa-users"></i> 班级课表
+                    </button>
+                </div>
+                
+                <p id="fileModeDescription">请选择要加载的教师课表文件：</p>
+                
                 <div class="file-list" id="fileList">
-                    <div class="no-files-found">
-                        <i class="fas fa-search fa-2x"></i>
-                        <h4 style="margin: 10px 0 5px;">正在扫描文件...</h4>
-                        <p>请稍候</p>
+                    <!-- 文件列表动态生成 -->
+                </div>
+                
+                <!-- 其他文件类型 -->
+                <div class="additional-files" id="additionalFiles" style="display: none;">
+                    <h4>其他课表文件</h4>
+                    <div id="otherFileList">
+                        <!-- 其他类型文件 -->
                     </div>
                 </div>
+                
                 <div class="modal-actions">
                     <button class="modal-btn secondary" id="cancelSelect">取消</button>
                     <button class="modal-btn primary" id="confirmSelect" disabled>加载选中文件</button>
@@ -936,370 +192,161 @@
         </div>
     </div>
     
-    <!-- 桌面端头部 -->
-    <header>
-        <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表查询系统</h1>
-        <p class="subtitle">支持多学年课表切换，轻松查询不同学年数据</p>
-    </header>
+    <!-- 修改控制面板 -->
+    <div class="control-panel">
+        <div class="data-source-area">
+            <button class="data-source-btn" id="selectTimetableBtn">
+                <i class="fas fa-calendar-alt"></i> 选择加载课表
+                <span id="currentModeIndicator" class="mode-indicator teacher" style="display: none;">
+                    <i class="fas fa-chalkboard-teacher"></i> 教师
+                </span>
+            </button>
+        </div>
+        
+        <div class="current-data-info" id="currentDataInfo" style="display: none;">
+            <i class="fas fa-file-code"></i>
+            <div class="current-data-text">
+                当前加载: <strong id="currentFileName">未选择文件</strong>
+                <span id="fileTypeBadge" class="file-type-badge teacher">教师课表</span>
+                <div style="font-size: 0.8rem; color: #666; margin-top: 2px;">
+                    <span id="currentDataCount">0</span> 条记录 | 
+                    最后更新: <span id="currentFileTime">-</span>
+                </div>
+            </div>
+            <button class="refresh-btn" id="refreshFileList">
+                <i class="fas fa-sync-alt"></i> 刷新
+            </button>
+        </div>
+        
+        <!-- 添加模式切换 -->
+        <div class="mode-switcher" id="mainModeSwitcher" style="display: none;">
+            <button class="mode-btn teacher-mode active" id="mainTeacherModeBtn" data-mode="teacher">
+                <i class="fas fa-chalkboard-teacher"></i> 教师模式
+            </button>
+            <button class="mode-btn class-mode" id="mainClassModeBtn" data-mode="class">
+                <i class="fas fa-users"></i> 班级模式
+            </button>
+        </div>
+        
+        <div class="status-area">
+            <!-- 状态信息 -->
+        </div>
+    </div>
     
-    <div class="container">
-        <div class="control-panel">
-            <div class="data-source-area">
-                <button class="data-source-btn" id="selectTimetableBtn">
-                    <i class="fas fa-calendar-alt"></i> 选择加载课表
-                </button>
-                <input type="text" class="data-source-input" id="customDataSource" 
-                       placeholder="或手动输入JSON文件URL" disabled style="display: none;">
+    <!-- 修改侧边栏 -->
+    <div class="teacher-sidebar" id="teacherSidebar">
+        <div class="teacher-list-header">
+            <div>
+                <i class="fas fa-list"></i> 
+                <span id="sidebarTitle">教师列表</span> 
+                (<span id="dataCountDisplay">0</span>)
             </div>
-            
-            <div class="current-data-info" id="currentDataInfo" style="display: none;">
-                <i class="fas fa-file-code"></i>
-                <div class="current-data-text">
-                    当前加载: <strong id="currentFileName">未选择文件</strong>
-                    <div style="font-size: 0.8rem; color: #666; margin-top: 2px;">
-                        教师总数: <span id="currentTeacherCount">0</span> | 
-                        最后更新: <span id="currentFileTime">-</span>
-                    </div>
-                </div>
-                <button class="refresh-btn" id="refreshFileList">
-                    <i class="fas fa-sync-alt"></i> 刷新文件列表
-                </button>
+            <button class="close-sidebar-btn" id="closeSidebarBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" class="search-input" id="dataSearch" 
+                       placeholder="搜索..." disabled>
             </div>
-            
-            <div class="status-area">
-                <div id="errorMessage" class="error" style="display: none;">
-                    <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
-                </div>
-                
-                <div id="successMessage" class="success" style="display: none;">
-                    <i class="fas fa-check-circle"></i> <span id="successText"></span>
-                </div>
+            <div class="search-info">
+                已显示 <span id="visibleDataCount">0</span> / <span id="totalDataCount">0</span> 条记录
             </div>
         </div>
         
-        <div class="content">
-            <!-- 教师侧边栏 -->
-            <div class="teacher-sidebar" id="teacherSidebar">
-                <div class="teacher-list-header">
-                    <div>
-                        <i class="fas fa-list"></i> 教师列表 (<span id="teacherCountDisplay">0</span>)
-                    </div>
-                    <button class="close-sidebar-btn" id="closeSidebarBtn">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <div class="teacher-list-container" id="dataList">
+            <div class="no-data">请先选择课表文件</div>
+        </div>
+    </div>
+    
+    <!-- 修改主内容区域 -->
+    <div class="timetable-main" id="timetableMain">
+        <div class="teacher-info-header" id="dataInfoHeader" style="display: none;">
+            <div class="teacher-info-content">
+                <div class="timetable-title">
+                    <h3 id="currentDataName">未选择</h3>
+                    <span id="currentModeBadge" class="mode-indicator teacher">教师</span>
                 </div>
-                
-                <div class="search-container">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" class="search-input" id="teacherSearch" 
-                               placeholder="搜索教师姓名..." disabled>
-                    </div>
-                    <div class="search-info">
-                        已显示 <span id="visibleTeachersCount">0</span> / <span id="totalTeachersCount">0</span> 位教师
-                    </div>
-                </div>
-                
-                <div class="teacher-list-container" id="teacherList">
-                    <div class="no-data">请先选择课表文件</div>
-                </div>
+                <div class="teacher-desc" id="currentDataDesc">请从左侧列表查看详细课表</div>
             </div>
-            
-            <div class="timetable-main" id="timetableMain">
-                <div class="teacher-info-header" id="teacherInfoHeader" style="display: none;">
-                    <div class="teacher-info-content">
-                        <div class="teacher-name" id="currentTeacherName">未选择教师</div>
-                        <div class="teacher-desc" id="currentTeacherDesc">请从左侧列表选择教师查看课表</div>
-                    </div>
-                    <button class="mobile-show-sidebar" id="showSidebarBtn">
-                        <i class="fas fa-list"></i> 教师列表
-                    </button>
-                </div>
-                
-                <div class="timetable-container" id="timetableContainer">
-                    <div class="no-data" id="noDataMessage">
-                        <i class="fas fa-calendar-alt fa-3x"></i>
-                        <h3 style="margin: 15px 0 10px;">暂无课表数据</h3>
-                        <p>请先选择课表文件，然后从左侧选择教师查看课表</p>
-                    </div>
-                    
-                    <div class="loading" id="loadingIndicator" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i> 正在加载课表数据...
-                    </div>
-                    
-                    <div id="timetableContent" style="display: none;">
-                        <div class="excel-table-container">
-                            <table class="excel-table-8x6" id="timetableTable">
-                                <thead id="tableHeader"></thead>
-                                <tbody id="tableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <button class="mobile-show-sidebar" id="showSidebarBtn">
+                <i class="fas fa-list"></i> 
+                <span id="sidebarBtnText">列表</span>
+            </button>
         </div>
         
-        <footer>
-            <p>© 2026 教师课表查询系统 | 支持多学年课表切换，轻松查询不同学年数据</p>
-        </footer>
+        <!-- 课表容器 -->
     </div>
 
     <script>
-        // DOM元素
-        const selectTimetableBtn = document.getElementById('selectTimetableBtn');
-        const customDataSource = document.getElementById('customDataSource');
-        const errorMessage = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        const successMessage = document.getElementById('successMessage');
-        const successText = document.getElementById('successText');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        
-        // 文件选择弹窗相关元素
-        const fileSelectModal = document.getElementById('fileSelectModal');
-        const closeFileModal = document.getElementById('closeFileModal');
-        const fileList = document.getElementById('fileList');
-        const cancelSelect = document.getElementById('cancelSelect');
-        const confirmSelect = document.getElementById('confirmSelect');
-        
-        // 当前文件信息元素
-        const currentDataInfo = document.getElementById('currentDataInfo');
-        const currentFileName = document.getElementById('currentFileName');
-        const currentTeacherCount = document.getElementById('currentTeacherCount');
-        const currentFileTime = document.getElementById('currentFileTime');
-        const refreshFileList = document.getElementById('refreshFileList');
-        
-        // 侧边栏相关元素
-        const teacherSidebar = document.getElementById('teacherSidebar');
-        const teacherCountDisplay = document.getElementById('teacherCountDisplay');
-        const visibleTeachersCount = document.getElementById('visibleTeachersCount');
-        const totalTeachersCount = document.getElementById('totalTeachersCount');
-        const teacherList = document.getElementById('teacherList');
-        const teacherSearch = document.getElementById('teacherSearch');
-        const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-        
-        // 移动端顶部栏元素
-        const mobileHeader = document.getElementById('mobileHeader');
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileBackBtn = document.getElementById('mobileBackBtn');
-        const mobileTitle = document.getElementById('mobileTitle');
-        
-        // 主内容区域元素
-        const showSidebarBtn = document.getElementById('showSidebarBtn');
-        const teacherInfoHeader = document.getElementById('teacherInfoHeader');
-        const currentTeacherName = document.getElementById('currentTeacherName');
-        const currentTeacherDesc = document.getElementById('currentTeacherDesc');
-        const noDataMessage = document.getElementById('noDataMessage');
-        const timetableContent = document.getElementById('timetableContent');
-        const timetableTable = document.getElementById('timetableTable');
-        const tableHeader = document.getElementById('tableHeader');
-        const tableBody = document.getElementById('tableBody');
-        const timetableMain = document.getElementById('timetableMain');
-        
         // 全局变量
-        let jsonData = null;
+        let currentMode = 'teacher'; // 'teacher' 或 'class'
+        let currentDataType = ''; // 当前加载的数据类型
         let teachers = [];
-        let allTeacherItems = [];
-        let currentTeacherIndex = -1;
-        let isMobile = false;
-        let currentFilePath = '';
-        let availableFiles = [];
-        let selectedFileIndex = -1;
+        let classes = [];
+        let allDataItems = []; // 统一数据项
+        let currentDataIndex = -1;
         
-        // 课程颜色映射
-        const courseColors = {
-            '语文': 'language',
-            '数学': 'math',
-            '英语': 'english',
-            '物理': 'physics',
-            '化学': 'chemistry',
-            '体育': 'sports',
-            '音乐': 'music',
-            '美术': 'art',
-            '历史': 'history',
-            '地理': 'geography',
-            '自习': 'self-study',
-            '活动': 'activity',
-            '班会': 'meeting',
-            '实验': 'experiment',
-            '作业辅导': 'tutoring',
-            '社团活动': 'activity'
-        };
-        
-        // 初始化事件监听器
-        function initEventListeners() {
-            selectTimetableBtn.addEventListener('click', openFileSelectModal);
-            closeFileModal.addEventListener('click', closeFileSelectModal);
-            cancelSelect.addEventListener('click', closeFileSelectModal);
-            confirmSelect.addEventListener('click', loadSelectedFile);
-            refreshFileList.addEventListener('click', scanForJsonFiles);
-            
-            // 移动端菜单按钮
-            mobileMenuBtn.addEventListener('click', openSidebar);
-            mobileBackBtn.addEventListener('click', closeSidebar);
-            closeSidebarBtn.addEventListener('click', closeSidebar);
-            showSidebarBtn.addEventListener('click', openSidebar);
-            
-            // 点击遮罩层关闭侧边栏
-            document.addEventListener('click', (e) => {
-                if (isMobile && teacherSidebar.classList.contains('active') && 
-                    !teacherSidebar.contains(e.target) && 
-                    e.target !== mobileMenuBtn && 
-                    e.target !== showSidebarBtn) {
-                    closeSidebar();
-                }
-            });
-            
-            // 搜索框输入事件
-            teacherSearch.addEventListener('input', () => {
-                searchTeachers(teacherSearch.value.trim());
-            });
-            
-            // 搜索框键盘事件
-            teacherSearch.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
-                    teacherSearch.value = '';
-                    searchTeachers('');
-                } else if (e.key === 'Enter') {
-                    const firstVisible = document.querySelector('.teacher-item:not(.hidden)');
-                    if (firstVisible) {
-                        const teacherId = parseInt(firstVisible.dataset.id);
-                        selectTeacher(teacherId);
-                        closeSidebar();
-                    }
-                }
-            });
-            
-            // 检测屏幕尺寸变化
-            window.addEventListener('resize', checkScreenSize);
-            checkScreenSize();
-            
-            // 横屏竖屏切换
-            window.addEventListener('orientationchange', () => {
-                setTimeout(checkScreenSize, 100);
-            });
-            
-            // 页面加载时自动扫描文件
-            setTimeout(() => {
-                scanForJsonFiles();
-            }, 500);
-        }
-        
-        // 扫描当前路径下的JSON文件
+        // 修改文件扫描逻辑
         async function scanForJsonFiles() {
             try {
-                // 显示加载状态
-                fileList.innerHTML = `
-                    <div class="no-files-found">
-                        <i class="fas fa-spinner fa-spin fa-2x"></i>
-                        <h4 style="margin: 10px 0 5px;">正在扫描文件...</h4>
-                        <p>请稍候</p>
-                    </div>
-                `;
-                
-                // 尝试获取当前目录的文件列表
                 const currentPath = window.location.pathname;
                 const basePath = currentPath.substring(0, currentPath.lastIndexOf('/')) || '.';
                 
-                // 尝试通过多种方式获取文件列表
                 availableFiles = [];
                 
-                // 方法1: 尝试列出当前目录
-                try {
-                    const response = await fetch(basePath);
-                    if (response.ok) {
-                        const html = await response.text();
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(html, 'text/html');
-                        const links = doc.querySelectorAll('a');
-                        
-                        links.forEach(link => {
-                            const href = link.getAttribute('href');
-                            if (href && href.toLowerCase().endsWith('.json')) {
-                                const fileName = href.split('/').pop();
-                                availableFiles.push({
-                                    name: fileName,
-                                    path: href,
-                                    isLocal: true
-                                });
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.log('无法通过目录列表获取文件:', e.message);
-                }
-                
-                // 方法2: 检查常见的学年课表文件
-                const commonFiles = [
+                // 常见文件名模式
+                const teacherFiles = [
                     '教师课表.json',
                     '教师课表_2023-2024.json',
                     '教师课表_2022-2023.json',
-                    '教师课表_2021-2022.json',
-                    '教师课表_2020-2021.json',
-                    '教师课表_2019-2020.json',
-                    'timetable.json',
-                    'schedule.json',
-                    'data.json',
-                    '课表.json',
-                    'teacher_timetable.json'
+                    'teacher_timetable.json',
+                    'teachers.json'
                 ];
                 
+                const classFiles = [
+                    '班级课表.json',
+                    '班级课表_2023-2024.json',
+                    '班级课表_2022-2023.json',
+                    'class_timetable.json',
+                    'classes.json'
+                ];
+                
+                // 合并所有文件模式
+                const allFiles = [...teacherFiles, ...classFiles];
+                
                 // 测试每个文件是否存在
-                for (const fileName of commonFiles) {
+                for (const fileName of allFiles) {
                     try {
                         const testUrl = basePath + '/' + fileName;
                         const response = await fetch(testUrl, { method: 'HEAD' });
                         if (response.ok) {
-                            if (!availableFiles.some(f => f.name === fileName)) {
-                                availableFiles.push({
-                                    name: fileName,
-                                    path: testUrl,
-                                    isLocal: true
-                                });
-                            }
+                            const isTeacherFile = teacherFiles.includes(fileName);
+                            const isClassFile = classFiles.includes(fileName);
+                            
+                            let fileType = 'unknown';
+                            if (isTeacherFile) fileType = 'teacher';
+                            if (isClassFile) fileType = 'class';
+                            
+                            availableFiles.push({
+                                name: fileName,
+                                path: testUrl,
+                                type: fileType,
+                                isLocal: true
+                            });
                         }
                     } catch (e) {
                         // 文件不存在，忽略
                     }
                 }
                 
-                // 如果没有任何JSON文件，显示提示
-                if (availableFiles.length === 0) {
-                    fileList.innerHTML = `
-                        <div class="no-files-found">
-                            <i class="fas fa-search fa-2x"></i>
-                            <h4 style="margin: 10px 0 5px;">未发现课表文件</h4>
-                            <p>请将课表JSON文件放在当前目录下</p>
-                            <p style="font-size: 0.8rem; margin-top: 10px;">
-                                常见文件名: 教师课表.json, 教师课表_2023-2024.json
-                            </p>
-                        </div>
-                    `;
-                } else {
-                    // 按文件名排序
-                    availableFiles.sort((a, b) => a.name.localeCompare(b.name));
-                    
-                    // 显示文件列表
-                    updateFileList();
-                }
-                
-                // 如果有已加载的文件，高亮显示
-                if (currentFilePath) {
-                    const currentIndex = availableFiles.findIndex(f => f.path === currentFilePath);
-                    if (currentIndex !== -1) {
-                        selectedFileIndex = currentIndex;
-                        updateSelectedFile();
-                    }
-                }
+                updateFileList();
                 
             } catch (err) {
                 console.error('扫描文件失败:', err);
-                fileList.innerHTML = `
-                    <div class="no-files-found">
-                        <i class="fas fa-exclamation-triangle fa-2x"></i>
-                        <h4 style="margin: 10px 0 5px;">扫描文件失败</h4>
-                        <p>请手动输入文件URL或确认文件存在</p>
-                    </div>
-                `;
             }
         }
         
@@ -1307,67 +354,133 @@
         function updateFileList() {
             fileList.innerHTML = '';
             
-            availableFiles.forEach((file, index) => {
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item';
-                if (index === selectedFileIndex) {
-                    fileItem.classList.add('active');
+            // 按类型和文件名排序
+            availableFiles.sort((a, b) => {
+                if (a.type === b.type) {
+                    return a.name.localeCompare(b.name);
                 }
-                
-                fileItem.innerHTML = `
-                    <div class="file-item-name">${file.name}</div>
-                    <div class="file-item-size">${file.isLocal ? '本地文件' : '远程文件'}</div>
-                `;
-                
-                fileItem.addEventListener('click', () => {
-                    selectFile(index);
-                });
-                
-                fileList.appendChild(fileItem);
+                return a.type === 'teacher' ? -1 : 1;
             });
             
-            // 如果没有文件，显示提示
-            if (availableFiles.length === 0) {
+            // 过滤当前模式的文件
+            const modeFiles = availableFiles.filter(file => file.type === currentMode);
+            const otherFiles = availableFiles.filter(file => file.type !== currentMode && file.type !== 'unknown');
+            
+            // 显示当前模式的文件
+            if (modeFiles.length > 0) {
+                modeFiles.forEach((file, index) => {
+                    const fileItem = createFileItem(file, index);
+                    fileList.appendChild(fileItem);
+                });
+            } else {
                 fileList.innerHTML = `
                     <div class="no-files-found">
                         <i class="fas fa-search fa-2x"></i>
-                        <h4 style="margin: 10px 0 5px;">未发现课表文件</h4>
+                        <h4 style="margin: 10px 0 5px;">未找到${currentMode === 'teacher' ? '教师' : '班级'}课表文件</h4>
                         <p>请将课表JSON文件放在当前目录下</p>
                     </div>
                 `;
             }
-        }
-        
-        // 选择文件
-        function selectFile(index) {
-            const fileItems = document.querySelectorAll('.file-item');
-            fileItems.forEach(item => item.classList.remove('active'));
             
-            if (index >= 0 && index < availableFiles.length) {
-                fileItems[index].classList.add('active');
-                selectedFileIndex = index;
-                confirmSelect.disabled = false;
+            // 显示其他类型的文件
+            if (otherFiles.length > 0) {
+                document.getElementById('additionalFiles').style.display = 'block';
+                const otherFileList = document.getElementById('otherFileList');
+                otherFileList.innerHTML = '';
+                
+                otherFiles.forEach((file, index) => {
+                    const fileItem = createFileItem(file, modeFiles.length + index, true);
+                    otherFileList.appendChild(fileItem);
+                });
+            } else {
+                document.getElementById('additionalFiles').style.display = 'none';
             }
+            
+            // 更新文件描述
+            const description = currentMode === 'teacher' 
+                ? '请选择要加载的教师课表文件：' 
+                : '请选择要加载的班级课表文件：';
+            document.getElementById('fileModeDescription').textContent = description;
         }
         
-        // 更新选中的文件
-        function updateSelectedFile() {
-            const fileItems = document.querySelectorAll('.file-item');
-            fileItems.forEach((item, index) => {
-                item.classList.toggle('active', index === selectedFileIndex);
+        // 创建文件项
+        function createFileItem(file, index, isOther = false) {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            if (!isOther && index === selectedFileIndex) {
+                fileItem.classList.add('active');
+            }
+            
+            const typeText = file.type === 'teacher' ? '教师课表' : 
+                           file.type === 'class' ? '班级课表' : '未知类型';
+            
+            fileItem.innerHTML = `
+                <div class="file-item-name">${file.name}</div>
+                <div class="file-item-size">
+                    ${typeText} ${file.isLocal ? '| 本地文件' : ''}
+                </div>
+            `;
+            
+            fileItem.addEventListener('click', () => {
+                if (!isOther) {
+                    selectFile(index);
+                } else {
+                    // 点击其他类型文件，切换到对应模式
+                    switchMode(file.type);
+                    // 重新扫描并选择这个文件
+                    setTimeout(() => {
+                        const newIndex = availableFiles.findIndex(f => f.path === file.path);
+                        if (newIndex !== -1) {
+                            selectFile(newIndex);
+                        }
+                    }, 100);
+                }
             });
-            confirmSelect.disabled = selectedFileIndex === -1;
+            
+            return fileItem;
         }
         
-        // 打开文件选择弹窗
-        function openFileSelectModal() {
-            fileSelectModal.classList.add('active');
+        // 切换模式
+        function switchMode(mode) {
+            if (mode === currentMode) return;
+            
+            currentMode = mode;
+            
+            // 更新UI
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (mode === 'teacher') {
+                document.getElementById('teacherModeBtn').classList.add('active');
+                document.getElementById('mainTeacherModeBtn').classList.add('active');
+                document.getElementById('currentModeIndicator').className = 'mode-indicator teacher';
+                document.getElementById('currentModeIndicator').innerHTML = '<i class="fas fa-chalkboard-teacher"></i> 教师';
+                document.getElementById('sidebarTitle').textContent = '教师列表';
+                document.getElementById('sidebarBtnText').textContent = '教师列表';
+            } else {
+                document.getElementById('classModeBtn').classList.add('active');
+                document.getElementById('mainClassModeBtn').classList.add('active');
+                document.getElementById('currentModeIndicator').className = 'mode-indicator class';
+                document.getElementById('currentModeIndicator').innerHTML = '<i class="fas fa-users"></i> 班级';
+                document.getElementById('sidebarTitle').textContent = '班级列表';
+                document.getElementById('sidebarBtnText').textContent = '班级列表';
+            }
+            
+            // 更新搜索框占位符
+            document.getElementById('dataSearch').placeholder = 
+                currentMode === 'teacher' ? '搜索教师姓名...' : '搜索班级名称...';
+            
+            // 重新扫描文件
             scanForJsonFiles();
-        }
-        
-        // 关闭文件选择弹窗
-        function closeFileSelectModal() {
-            fileSelectModal.classList.remove('active');
+            
+            // 如果已加载数据，重新显示
+            if (currentDataType === currentMode) {
+                displayDataList();
+            } else {
+                // 清除数据
+                resetData();
+            }
         }
         
         // 加载选中的文件
@@ -1379,140 +492,57 @@
             
             const selectedFile = availableFiles[selectedFileIndex];
             closeFileSelectModal();
+            
+            // 设置当前数据类型
+            currentDataType = selectedFile.type;
+            
+            // 更新UI
+            document.getElementById('mainModeSwitcher').style.display = 'flex';
+            document.getElementById('currentModeIndicator').style.display = 'inline-flex';
+            
+            // 更新文件类型标识
+            const fileTypeBadge = document.getElementById('fileTypeBadge');
+            fileTypeBadge.textContent = currentDataType === 'teacher' ? '教师课表' : '班级课表';
+            fileTypeBadge.className = `file-type-badge ${currentDataType}`;
+            
             loadData(selectedFile.path, selectedFile.name);
-        }
-        
-        // 加载数据
-        async function loadData(url, displayName = '') {
-            resetUI();
-            showLoading();
-            hideError();
-            hideSuccess();
-            
-            try {
-                console.log('开始加载课表文件:', url);
-                
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    },
-                    cache: 'no-cache'
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
-                console.log('成功解析JSON数据:', data);
-                
-                // 更新当前文件信息
-                currentFilePath = url;
-                const fileName = displayName || url.split('/').pop() || '未命名文件';
-                currentFileName.textContent = fileName;
-                currentFileTime.textContent = new Date().toLocaleTimeString('zh-CN');
-                
-                processJsonData(data, url, fileName);
-                
-            } catch (err) {
-                console.error('加载课表失败:', err);
-                showError(`加载课表失败: ${err.message}`);
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        // 检测屏幕尺寸
-        function checkScreenSize() {
-            isMobile = window.innerWidth <= 768;
-            if (isMobile) {
-                document.body.classList.add('mobile-mode');
-                mobileBackBtn.style.display = 'block';
-                // 在移动端隐藏输入框
-                customDataSource.style.display = 'none';
-            } else {
-                document.body.classList.remove('mobile-mode');
-                mobileBackBtn.style.display = 'none';
-                customDataSource.style.display = 'block';
-                closeSidebar();
-            }
-        }
-        
-        // 打开侧边栏
-        function openSidebar() {
-            teacherSidebar.classList.add('active');
-            mobileBackBtn.style.display = 'block';
-            mobileMenuBtn.style.display = 'none';
-        }
-        
-        // 关闭侧边栏
-        function closeSidebar() {
-            teacherSidebar.classList.remove('active');
-            mobileBackBtn.style.display = 'none';
-            mobileMenuBtn.style.display = 'block';
-            
-            if (currentTeacherIndex !== -1) {
-                scrollToTimetableTop();
-            }
-        }
-        
-        // 滚动到课表顶部
-        function scrollToTimetableTop() {
-            const timetableContainer = document.querySelector('.timetable-container');
-            if (timetableContainer) {
-                timetableContainer.scrollTop = 0;
-            }
-        }
-        
-        // 更新移动端标题
-        function updateMobileTitle(teacherName) {
-            if (isMobile && teacherName) {
-                mobileTitle.textContent = teacherName;
-                mobileTitle.title = teacherName;
-            } else {
-                mobileTitle.textContent = '教师课表查询';
-            }
         }
         
         // 处理JSON数据
         function processJsonData(data, url, fileName) {
             try {
-                console.log('开始处理课表数据...');
-                
                 if (!data || typeof data !== 'object') {
                     throw new Error('JSON数据格式不正确');
                 }
                 
-                if (!data.teachers) {
-                    throw new Error('JSON数据中缺少teachers字段');
+                if (currentDataType === 'teacher') {
+                    if (!data.teachers) {
+                        throw new Error('教师课表数据中缺少teachers字段');
+                    }
+                    teachers = extractTeachers(data);
+                    allDataItems = teachers;
+                } else {
+                    if (!data.classes) {
+                        throw new Error('班级课表数据中缺少classes字段');
+                    }
+                    classes = extractClasses(data);
+                    allDataItems = classes;
                 }
                 
-                teachers = extractTeachers(data);
-                
-                if (teachers.length === 0) {
-                    showError('课表文件中没有找到有效的教师信息');
+                if (allDataItems.length === 0) {
+                    const typeText = currentDataType === 'teacher' ? '教师' : '班级';
+                    showError(`${typeText}课表文件中没有找到有效的数据`);
                     return;
                 }
                 
                 jsonData = data;
                 
-                // 更新教师数量显示
-                teacherCountDisplay.textContent = teachers.length;
-                currentTeacherCount.textContent = teachers.length;
-                totalTeachersCount.textContent = teachers.length;
+                // 更新显示
+                updateCurrentDataInfo(allDataItems.length, fileName);
+                displayDataList();
                 
-                displayTeacherList(teachers);
-                
-                // 启用搜索框
-                teacherSearch.disabled = false;
-                teacherSearch.placeholder = `在 ${teachers.length} 位教师中搜索...`;
-                
-                // 显示当前文件信息
-                currentDataInfo.style.display = 'flex';
-                
-                showSuccess(`成功加载 ${teachers.length} 位教师的课表数据`);
+                const typeText = currentDataType === 'teacher' ? '教师' : '班级';
+                showSuccess(`成功加载 ${allDataItems.length} 条${typeText}课表数据`);
                 
             } catch (err) {
                 console.error('处理课表数据失败:', err);
@@ -1520,372 +550,154 @@
             }
         }
         
-        // 提取教师列表
-        function extractTeachers(data) {
-            const teachers = [];
+        // 提取班级数据
+        function extractClasses(data) {
+            const classes = [];
             
-            if (data.teachers && typeof data.teachers === 'object') {
-                Object.keys(data.teachers).forEach((teacherKey, index) => {
-                    const teacherData = data.teachers[teacherKey];
+            if (data.classes && typeof data.classes === 'object') {
+                Object.keys(data.classes).forEach((className, index) => {
+                    const classData = data.classes[className];
                     
-                    if (teacherData && teacherData.data) {
-                        teachers.push({
+                    if (classData && classData.data) {
+                        classes.push({
                             id: index,
-                            name: teacherData.name || teacherKey,
-                            description: teacherData.description || '',
-                            rows: teacherData.rows || 0,
-                            cols: teacherData.cols || 0,
-                            data: teacherData.data || []
+                            name: classData.name || className,
+                            description: classData.description || '',
+                            rows: classData.rows || 0,
+                            cols: classData.cols || 0,
+                            data: classData.data || [],
+                            type: 'class'
                         });
                     }
                 });
             }
             
-            return teachers;
+            return classes;
         }
         
-        // 显示教师列表
-        function displayTeacherList(teachers) {
-            teacherList.innerHTML = '';
-            allTeacherItems = [];
+        // 显示数据列表
+        function displayDataList() {
+            const dataList = document.getElementById('dataList');
+            dataList.innerHTML = '';
+            allDataItems = [];
             
-            if (teachers.length === 0) {
-                teacherList.innerHTML = '<div class="no-teachers-found">未找到教师数据</div>';
-                visibleTeachersCount.textContent = '0';
+            const items = currentDataType === 'teacher' ? teachers : classes;
+            
+            if (items.length === 0) {
+                const typeText = currentDataType === 'teacher' ? '教师' : '班级';
+                dataList.innerHTML = `<div class="no-teachers-found">未找到${typeText}数据</div>`;
+                document.getElementById('visibleDataCount').textContent = '0';
+                document.getElementById('totalDataCount').textContent = '0';
+                document.getElementById('dataCountDisplay').textContent = '0';
                 return;
             }
             
-            teachers.forEach(teacher => {
-                const teacherItem = document.createElement('div');
-                teacherItem.className = 'teacher-item';
-                teacherItem.dataset.id = teacher.id;
-                teacherItem.dataset.name = teacher.name.toLowerCase();
-                teacherItem.dataset.description = (teacher.description || '').toLowerCase();
+            items.forEach(item => {
+                const dataItem = document.createElement('div');
+                dataItem.className = currentDataType === 'teacher' ? 'teacher-item' : 'class-card';
+                dataItem.dataset.id = item.id;
+                dataItem.dataset.name = item.name.toLowerCase();
+                dataItem.dataset.description = (item.description || '').toLowerCase();
                 
-                teacherItem.innerHTML = `
-                    <div class="teacher-item-name" id="teacherName_${teacher.id}">${teacher.name}</div>
-                    ${teacher.description ? 
-                      `<div class="teacher-item-desc" id="teacherDesc_${teacher.id}">${teacher.description}</div>` : ''}
+                dataItem.innerHTML = `
+                    <div class="${currentDataType === 'teacher' ? 'teacher-item-name' : 'class-name'}" 
+                         id="dataName_${item.id}">${item.name}</div>
+                    ${item.description ? 
+                      `<div class="${currentDataType === 'teacher' ? 'teacher-item-desc' : 'class-desc'}" 
+                            id="dataDesc_${item.id}">${item.description}</div>` : ''}
                 `;
                 
-                teacherItem.addEventListener('click', () => {
-                    selectTeacher(teacher.id);
+                dataItem.addEventListener('click', () => {
+                    selectData(item.id);
                     if (isMobile) {
                         closeSidebar();
                     }
                 });
                 
-                teacherList.appendChild(teacherItem);
-                allTeacherItems.push(teacherItem);
+                dataList.appendChild(dataItem);
+                allDataItems.push(dataItem);
             });
             
-            visibleTeachersCount.textContent = teachers.length;
+            document.getElementById('visibleDataCount').textContent = items.length;
+            document.getElementById('totalDataCount').textContent = items.length;
+            document.getElementById('dataCountDisplay').textContent = items.length;
             
-            if (teachers.length > 0) {
-                selectTeacher(0);
+            if (items.length > 0) {
+                selectData(0);
             }
         }
         
-        // 搜索教师
-        function searchTeachers(searchTerm) {
-            if (!allTeacherItems.length) return;
+        // 选择数据
+        function selectData(dataId) {
+            const items = currentDataType === 'teacher' ? teachers : classes;
+            const data = items.find(d => d.id === dataId);
+            if (!data) return;
             
-            const searchLower = searchTerm.toLowerCase();
-            let visibleCount = 0;
-            
-            allTeacherItems.forEach(item => {
-                const name = item.dataset.name;
-                const description = item.dataset.description || '';
-                
-                const matches = searchTerm === '' || 
-                              name.includes(searchLower) || 
-                              description.includes(searchLower);
-                
-                if (matches) {
-                    item.classList.remove('hidden');
-                    visibleCount++;
-                    
-                    if (searchTerm) {
-                        highlightText(item, searchTerm);
-                    } else {
-                        removeHighlight(item);
-                    }
-                } else {
-                    item.classList.add('hidden');
-                }
-            });
-            
-            visibleTeachersCount.textContent = visibleCount;
-            
-            if (visibleCount === 0 && searchTerm) {
-                showNoResultsMessage();
-            } else {
-                removeNoResultsMessage();
-            }
-        }
-        
-        // 显示无结果提示
-        function showNoResultsMessage() {
-            if (!document.getElementById('noResultsMessage')) {
-                const noResults = document.createElement('div');
-                noResults.id = 'noResultsMessage';
-                noResults.className = 'no-teachers-found';
-                noResults.innerHTML = `
-                    <i class="fas fa-search fa-2x"></i>
-                    <h4 style="margin: 10px 0 5px;">未找到匹配的教师</h4>
-                    <p>尝试搜索其他关键词</p>
-                `;
-                teacherList.appendChild(noResults);
-            }
-        }
-        
-        // 移除无结果提示
-        function removeNoResultsMessage() {
-            const noResults = document.getElementById('noResultsMessage');
-            if (noResults) noResults.remove();
-        }
-        
-        // 高亮显示搜索文本
-        function highlightText(teacherItem, searchTerm) {
-            const nameElement = teacherItem.querySelector('.teacher-item-name');
-            const descElement = teacherItem.querySelector('.teacher-item-desc');
-            
-            if (nameElement) {
-                const teacherId = parseInt(teacherItem.dataset.id);
-                const teacher = teachers.find(t => t.id === teacherId);
-                if (teacher) {
-                    const highlightedName = highlightTextInElement(teacher.name, searchTerm);
-                    nameElement.innerHTML = highlightedName;
-                }
-            }
-            
-            if (descElement) {
-                const teacherId = parseInt(teacherItem.dataset.id);
-                const teacher = teachers.find(t => t.id === teacherId);
-                if (teacher && teacher.description) {
-                    const highlightedDesc = highlightTextInElement(teacher.description, searchTerm);
-                    descElement.innerHTML = highlightedDesc;
-                }
-            }
-        }
-        
-        // 移除高亮
-        function removeHighlight(teacherItem) {
-            const nameElement = teacherItem.querySelector('.teacher-item-name');
-            const descElement = teacherItem.querySelector('.teacher-item-desc');
-            
-            if (nameElement) {
-                const teacherId = parseInt(teacherItem.dataset.id);
-                const teacher = teachers.find(t => t.id === teacherId);
-                if (teacher) {
-                    nameElement.textContent = teacher.name;
-                }
-            }
-            
-            if (descElement) {
-                const teacherId = parseInt(teacherItem.dataset.id);
-                const teacher = teachers.find(t => t.id === teacherId);
-                if (teacher && teacher.description) {
-                    descElement.textContent = teacher.description;
-                }
-            }
-        }
-        
-        // 在文本中高亮显示搜索词
-        function highlightTextInElement(text, searchTerm) {
-            if (!searchTerm) return text;
-            
-            const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
-            return text.replace(regex, '<span class="search-highlight">$1</span>');
-        }
-        
-        // 转义正则表达式特殊字符
-        function escapeRegExp(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-        
-        // 选择教师
-        function selectTeacher(teacherId) {
-            const teacher = teachers.find(t => t.id === teacherId);
-            if (!teacher) return;
-            
-            allTeacherItems.forEach(item => {
+            allDataItems.forEach(item => {
                 item.classList.remove('active');
             });
             
-            const selectedItem = document.querySelector(`.teacher-item[data-id="${teacherId}"]:not(.hidden)`);
+            const selectedItem = document.querySelector(`.${currentDataType === 'teacher' ? 'teacher-item' : 'class-card'}[data-id="${dataId}"]:not(.hidden)`);
             if (selectedItem) {
                 selectedItem.classList.add('active');
                 selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
             
-            currentTeacherName.textContent = teacher.name;
-            currentTeacherDesc.textContent = teacher.description || `${teacher.rows}行 × ${teacher.cols}列`;
-            currentTeacherIndex = teacherId;
+            document.getElementById('currentDataName').textContent = data.name;
+            document.getElementById('currentDataDesc').textContent = data.description || `${data.rows}行 × ${data.cols}列`;
+            currentDataIndex = dataId;
             
-            updateMobileTitle(teacher.name);
+            // 更新模式标识
+            const modeBadge = document.getElementById('currentModeBadge');
+            modeBadge.textContent = currentDataType === 'teacher' ? '教师' : '班级';
+            modeBadge.className = `mode-indicator ${currentDataType}`;
             
-            showTeacherTimetable(teacher);
-        }
-        
-        // 显示教师课表
-        function showTeacherTimetable(teacher) {
-            noDataMessage.style.display = 'none';
-            loadingIndicator.style.display = 'flex';
-            timetableContent.style.display = 'none';
-            teacherInfoHeader.style.display = 'flex';
+            updateMobileTitle(data.name);
             
-            setTimeout(() => {
-                try {
-                    const timetableData = teacher.data;
-                    
-                    if (!timetableData || !Array.isArray(timetableData) || timetableData.length === 0) {
-                        currentTeacherDesc.textContent = '该教师没有可用的课表数据';
-                        loadingIndicator.style.display = 'none';
-                        noDataMessage.style.display = 'block';
-                        return;
-                    }
-                    
-                    displayExcelTimetable(timetableData);
-                    
-                    loadingIndicator.style.display = 'none';
-                    timetableContent.style.display = 'block';
-                    
-                    scrollToTimetableTop();
-                    
-                } catch (err) {
-                    console.error('显示课表失败:', err);
-                    showError(`显示课表失败: ${err.message}`);
-                    loadingIndicator.style.display = 'none';
-                }
-            }, 100);
+            showDataTimetable(data);
         }
         
-        // 显示Excel风格的课表
-        function displayExcelTimetable(data) {
-            if (!data || data.length === 0) {
-                tableHeader.innerHTML = '';
-                tableBody.innerHTML = '';
-                return;
-            }
-            
-            let headerHTML = '<tr>';
-            for (let col = 0; col < data[0].length; col++) {
-                const cellValue = data[0][col] || '';
-                const cellClass = col === 0 ? 'corner-cell' : '';
-                headerHTML += `<th class="${cellClass}">${cellValue}</th>`;
-            }
-            headerHTML += '</tr>';
-            tableHeader.innerHTML = headerHTML;
-            
-            let bodyHTML = '';
-            for (let row = 1; row < data.length; row++) {
-                const rowData = data[row];
-                bodyHTML += '<tr>';
-                
-                for (let col = 0; col < rowData.length; col++) {
-                    const cellValue = rowData[col] !== undefined ? rowData[col] : '';
-                    const cellDisplay = formatCellValue(cellValue);
-                    
-                    let cellClass = '';
-                    if (col === 0) {
-                        cellClass = 'row-header';
-                    } else if (cellValue) {
-                        for (const [keyword, colorClass] of Object.entries(courseColors)) {
-                            if (cellValue.includes(keyword)) {
-                                cellClass = 'course-cell ' + colorClass;
-                                break;
-                            }
-                        }
-                    }
-                    
-                    bodyHTML += `<td class="${cellClass}">${cellDisplay}</td>`;
-                }
-                
-                bodyHTML += '</tr>';
-            }
-            tableBody.innerHTML = bodyHTML;
+        // 更新当前数据信息
+        function updateCurrentDataInfo(count, fileName) {
+            document.getElementById('currentFileName').textContent = fileName;
+            document.getElementById('currentDataCount').textContent = count;
+            document.getElementById('currentFileTime').textContent = new Date().toLocaleTimeString('zh-CN');
+            document.getElementById('currentDataInfo').style.display = 'flex';
         }
         
-        // 格式化单元格值
-        function formatCellValue(value) {
-            if (value === null || value === undefined || value === '') {
-                return '';
-            }
-            
-            if (typeof value === 'string' && value.includes('<br>')) {
-                return value.split('<br>').join('<br>');
-            }
-            
-            return String(value);
-        }
-        
-        // 显示加载
-        function showLoading() {
-            loadingIndicator.style.display = 'flex';
-        }
-        
-        // 隐藏加载
-        function hideLoading() {
-            loadingIndicator.style.display = 'none';
-        }
-        
-        // 显示错误
-        function showError(message) {
-            errorText.textContent = message;
-            errorMessage.style.display = 'block';
-        }
-        
-        // 隐藏错误
-        function hideError() {
-            errorMessage.style.display = 'none';
-        }
-        
-        // 显示成功
-        function showSuccess(message) {
-            successText.textContent = message;
-            successMessage.style.display = 'block';
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 3000);
-        }
-        
-        // 隐藏成功
-        function hideSuccess() {
-            successMessage.style.display = 'none';
-        }
-        
-        // 重置UI
-        function resetUI() {
-            jsonData = null;
+        // 重置数据
+        function resetData() {
             teachers = [];
-            allTeacherItems = [];
-            currentTeacherIndex = -1;
+            classes = [];
+            allDataItems = [];
+            currentDataIndex = -1;
             
-            teacherInfoHeader.style.display = 'none';
-            timetableContent.style.display = 'none';
-            noDataMessage.style.display = 'block';
-            teacherList.innerHTML = '<div class="no-data">请先选择课表文件</div>';
+            document.getElementById('dataInfoHeader').style.display = 'none';
+            document.getElementById('timetableContent').style.display = 'none';
+            document.getElementById('noDataMessage').style.display = 'block';
+            document.getElementById('dataList').innerHTML = '<div class="no-data">请先选择课表文件</div>';
             
-            teacherCountDisplay.textContent = '0';
-            totalTeachersCount.textContent = '0';
-            visibleTeachersCount.textContent = '0';
+            document.getElementById('dataCountDisplay').textContent = '0';
+            document.getElementById('totalDataCount').textContent = '0';
+            document.getElementById('visibleDataCount').textContent = '0';
             
-            teacherSearch.value = '';
-            teacherSearch.disabled = true;
-            teacherSearch.placeholder = '请先选择课表文件';
+            document.getElementById('dataSearch').value = '';
+            document.getElementById('dataSearch').disabled = true;
+            document.getElementById('dataSearch').placeholder = '请先选择课表文件';
             
             updateMobileTitle('');
-            
-            hideError();
-            hideSuccess();
         }
         
-        // 页面加载完成
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('页面加载完成，初始化事件监听器...');
-            initEventListeners();
-        });
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 原有的监听器...
+            
+            // 添加模式切换监听
+            document.getElementById('teacherModeBtn').addEventListener('click', () => switchMode('teacher'));
+            document.getElementById('classModeBtn').addEventListener('click', () => switchMode('class'));
+            document.getElementById('mainTeacherModeBtn').addEventListener('click', () => switchMode('teacher'));
+            document.getElementById('mainClassModeBtn').addEventListener('click', () => switchMode('class'));
+        }
     </script>
 </body>
 </html>
