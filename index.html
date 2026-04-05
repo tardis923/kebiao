@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -1160,19 +1161,17 @@
                         const foundFiles = [];
                         
                         links.forEach(link => {
-                            const href = link.getAttribute('href');
-                            if (href && href.toLowerCase().endsWith('.json')) {
-                                const fileName = href.split('/').pop();
-                                // 检查是否是课表文件
-                                if (isTimetableFile(fileName)) {
-                                    foundFiles.push({
-                                        name: fileName,
-                                        path: href,
-                                        isLocal: true
-                                    });
-                                }
-                            }
-                        });
+    const href = link.getAttribute('href');
+    if (href && href.toLowerCase().endsWith('.json')) {
+        const fileName = href.split('/').pop();
+        // 直接添加所有JSON文件，不进行过滤
+        availableFiles.push({
+            name: fileName,
+            path: href,
+            isLocal: true
+        });
+    }
+});
                         
                         if (foundFiles.length > 0) {
                             availableFiles = foundFiles;
