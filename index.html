@@ -88,7 +88,7 @@
             opacity: 0.9;
         }
         
-        /* 控制面板 - 移动端优化 */
+        /* 控制面板 */
         .control-panel {
             padding: 20px 15px 15px 15px;
             background: #f8fcfb;
@@ -167,7 +167,7 @@
             height: calc(100vh - 180px);
         }
         
-        /* 文件选择弹窗样式 */
+        /* 文件选择弹窗 */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -310,7 +310,7 @@
             background: #e0e0e0;
         }
         
-        /* 侧边栏样式 - 分为上下两部分 */
+        /* 侧边栏 */
         .teacher-sidebar {
             width: 300px;
             background: #f8fcfb;
@@ -581,7 +581,7 @@
             background: #f9f9f9;
         }
         
-        /* Excel风格表格样式 - 移动端优化 */
+        /* Excel表格样式 */
         .excel-table-container {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -712,7 +712,7 @@
             border-radius: 3px;
         }
         
-        /* 移动端特定样式 */
+        /* 移动端样式 */
         @media (max-width: 768px) {
             .mobile-header {
                 display: block;
@@ -915,7 +915,7 @@
         </div>
         
         <div class="content">
-            <!-- 侧边栏 - 包含班级和教师列表 -->
+            <!-- 侧边栏 -->
             <div class="teacher-sidebar" id="teacherSidebar">
                 <div class="sidebar-section">
                     <div class="section-header class-section">
@@ -1057,12 +1057,12 @@
         
         // 全局变量
         let jsonData = null;
-        let classes = []; // 班级数据
-        let teachers = []; // 教师数据
-        let allClassItems = []; // 班级DOM元素
-        let allTeacherItems = []; // 教师DOM元素
-        let currentDataType = ''; // 'class' 或 'teacher'
-        let currentDataId = -1; // 当前选中的ID
+        let classes = [];
+        let teachers = [];
+        let allClassItems = [];
+        let allTeacherItems = [];
+        let currentDataType = '';
+        let currentDataId = -1;
         let isMobile = false;
         let currentFilePath = '';
         let availableFiles = [];
@@ -1116,7 +1116,7 @@
                     const firstVisible = document.querySelector('.teacher-item:not(.hidden)');
                     if (firstVisible) {
                         const teacherId = parseInt(firstVisible.dataset.id);
-                        selectTeacher(teacherId);
+                        selectData('teacher', teacherId);
                         if (isMobile) closeSidebar();
                     }
                 }
@@ -1132,7 +1132,7 @@
             }, 500);
         }
         
-        // 扫描JSON文件
+        // 扫描当前路径下的JSON文件
         async function scanForJsonFiles() {
             try {
                 fileList.innerHTML = `
@@ -1148,35 +1148,86 @@
                 
                 availableFiles = [];
                 
-                // 常见的课表文件名模式
-                const commonFiles = [
-                    '教师课表.json',
-                    '教师课表_2023-2024.json',
-                    '教师课表_2022-2023.json',
-                    '课表.json',
-                    'timetable.json',
-                    'schedule.json',
-                    'data.json'
-                ];
-                
-                // 测试每个文件是否存在
-                for (const fileName of commonFiles) {
-                    try {
-                        const testUrl = basePath + '/' + fileName;
-                        const response = await fetch(testUrl, { method: 'HEAD' });
-                        if (response.ok) {
-                            availableFiles.push({
-                                name: fileName,
-                                path: testUrl,
-                                isLocal: true
-                            });
+                // 方法1: 尝试列出当前目录的所有文件
+                try {
+                    const response = await fetch(basePath);
+                    if (response.ok) {
+                        const html = await response.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const links = doc.querySelectorAll('a');
+                        
+                        const foundFiles = [];
+                        
+                        links.forEach(link => {
+                            const href = link.getAttribute('href');
+                            if (href && href.toLowerCase().endsWith('.json')) {
+                                const fileName = href.split('/').pop();
+                                // 检查是否是课表文件
+                                if (isTimetableFile(fileName)) {
+                                    foundFiles.push({
+                                        name: fileName,
+                                        path: href,
+                                        isLocal: true
+                                    });
+                                }
+                            }
+                        });
+                        
+                        if (foundFiles.length > 0) {
+                            availableFiles = foundFiles;
                         }
-                    } catch (e) {
-                        // 文件不存在，忽略
+                    }
+                } catch (e) {
+                    console.log('通过目录列表获取文件失败，尝试其他方法:', e.message);
+                }
+                
+                // 方法2: 如果方法1没找到，尝试智能文件名生成
+                if (availableFiles.length === 0) {
+                    const possibleNames = generatePossibleFileNames();
+                    
+                    for (const fileName of possibleNames) {
+                        try {
+                            const testUrl = basePath + '/' + fileName;
+                            const response = await fetch(testUrl, { method: 'HEAD' });
+                            if (response.ok) {
+                                availableFiles.push({
+                                    name: fileName,
+                                    path: testUrl,
+                                    isLocal: true
+                                });
+                                break; // 找到一个就停止
+                            }
+                        } catch (e) {
+                            // 文件不存在，忽略
+                        }
                     }
                 }
                 
-                updateFileList();
+                // 如果找到文件，更新列表
+                if (availableFiles.length > 0) {
+                    updateFileList();
+                } else {
+                    fileList.innerHTML = `
+                        <div class="no-files-found">
+                            <i class="fas fa-search fa-2x"></i>
+                            <h4 style="margin: 10px 0 5px;">未发现课表文件</h4>
+                            <p>请将课表JSON文件放在当前目录下</p>
+                            <p style="font-size: 0.8rem; margin-top: 10px; color: #666;">
+                                支持文件名包含: 课表、timetable、schedule、教师、班级等关键词
+                            </p>
+                        </div>
+                    `;
+                }
+                
+                // 如果有已加载的文件，高亮显示
+                if (currentFilePath) {
+                    const currentIndex = availableFiles.findIndex(f => f.path === currentFilePath);
+                    if (currentIndex !== -1) {
+                        selectedFileIndex = currentIndex;
+                        updateSelectedFile();
+                    }
+                }
                 
             } catch (err) {
                 console.error('扫描文件失败:', err);
@@ -1184,10 +1235,66 @@
                     <div class="no-files-found">
                         <i class="fas fa-exclamation-triangle fa-2x"></i>
                         <h4 style="margin: 10px 0 5px;">扫描文件失败</h4>
-                        <p>请手动确认文件存在</p>
+                        <p>${err.message}</p>
                     </div>
                 `;
             }
+        }
+        
+        // 检查是否是课表文件
+        function isTimetableFile(fileName) {
+            const lowerName = fileName.toLowerCase();
+            
+            // 包含课表关键词
+            const timetableKeywords = [
+                '课表', 'timetable', 'schedule', '课程表', 
+                'class', 'teacher', 'teachers', 'classes',
+                'schedule', '课程', '课时', '课'
+            ];
+            
+            return timetableKeywords.some(keyword => 
+                lowerName.includes(keyword) && lowerName.endsWith('.json')
+            );
+        }
+        
+        // 生成可能的文件名
+        function generatePossibleFileNames() {
+            const currentYear = new Date().getFullYear();
+            const years = [
+                currentYear + '-' + (currentYear + 1),
+                (currentYear - 1) + '-' + currentYear,
+                (currentYear - 2) + '-' + (currentYear - 1)
+            ];
+            
+            const prefixes = [
+                '教师课表',
+                '班级课表',
+                '课表',
+                'timetable',
+                'schedule',
+                '课程表',
+                'teacher_schedule',
+                'class_schedule',
+                'teachers',
+                'classes'
+            ];
+            
+            const possibleNames = [];
+            
+            // 无年份版本
+            prefixes.forEach(prefix => {
+                possibleNames.push(`${prefix}.json`);
+            });
+            
+            // 带年份版本
+            years.forEach(year => {
+                prefixes.forEach(prefix => {
+                    possibleNames.push(`${prefix}_${year}.json`);
+                    possibleNames.push(`${prefix}-${year}.json`);
+                });
+            });
+            
+            return possibleNames;
         }
         
         // 更新文件列表
@@ -1226,14 +1333,6 @@
                 
                 fileList.appendChild(fileItem);
             });
-            
-            if (currentFilePath) {
-                const currentIndex = availableFiles.findIndex(f => f.path === currentFilePath);
-                if (currentIndex !== -1) {
-                    selectedFileIndex = currentIndex;
-                    updateSelectedFile();
-                }
-            }
         }
         
         // 选择文件
@@ -1411,7 +1510,7 @@
         
         // 提取年级信息
         function extractGrade(className) {
-            const match = className.match(/(高一|高二|高三|初一|初二|初三|高一|高二|高三)/);
+            const match = className.match(/(初一|初二|初三|高一|高二|高三)/);
             if (match) {
                 const gradeMap = {
                     '初一': 1, '初二': 2, '初三': 3,
