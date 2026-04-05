@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>教师课表查询系统 - GitHub Pages版</title>
-    <!-- 加载pako库用于解压缩.gz文件 -->
+    <title>教师课表JSON加载修复版</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -24,7 +22,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1000px;
             margin: 0 auto;
             background-color: white;
             border-radius: 15px;
@@ -35,208 +33,141 @@
         header {
             background: linear-gradient(90deg, #1a5f7a, #2a9d8f);
             color: white;
-            padding: 25px 30px;
+            padding: 20px 25px;
             text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header-content {
-            position: relative;
-            z-index: 1;
         }
         
         h1 {
-            font-size: 2.2rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+            font-size: 2rem;
+            margin-bottom: 8px;
         }
         
         .subtitle {
-            font-size: 1rem;
+            font-size: 0.9rem;
             opacity: 0.9;
-            margin-bottom: 20px;
         }
         
-        .data-source-section {
-            margin-top: 20px;
+        .load-section {
+            margin: 20px;
             padding: 20px;
-            background-color: rgba(255, 255, 255, 0.15);
+            background-color: #e8f6f3;
             border-radius: 10px;
         }
         
-        .data-source-title {
+        .load-title {
             font-size: 1.1rem;
             margin-bottom: 15px;
+            color: #1a5f7a;
             display: flex;
             align-items: center;
-            justify-content: center;
         }
         
-        .data-source-title i {
+        .load-title i {
             margin-right: 10px;
         }
         
         .data-source-buttons {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
             gap: 10px;
-            margin-top: 10px;
+            margin-bottom: 15px;
         }
         
         .data-source-btn {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            background-color: rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 1rem;
-            text-decoration: none;
+            justify-content: center;
+            background: #2a9d8f;
             color: white;
-            transition: all 0.3s;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            cursor: pointer;
+            padding: 10px 20px;
+            border-radius: 6px;
             border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            flex: 1;
         }
         
         .data-source-btn:hover:not(:disabled) {
-            background-color: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-            text-decoration: none;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            background: #1a5f7a;
         }
         
         .data-source-btn:disabled {
-            opacity: 0.6;
+            background: #cccccc;
             cursor: not-allowed;
-        }
-        
-        .data-source-btn i {
-            margin-right: 8px;
         }
         
         .data-source-input {
             width: 100%;
-            padding: 10px 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 10px;
+            border: 1px solid #c8e6e1;
             border-radius: 6px;
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
-            margin-top: 10px;
+            margin-bottom: 10px;
         }
         
-        .data-source-input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        .data-source-status {
-            margin-top: 10px;
-            padding: 8px;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            font-size: 0.9rem;
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
             display: none;
         }
         
-        .data-source-status.active {
+        .progress-bar.active {
             display: block;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a5f7a, #2a9d8f);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .json-structure {
+            background: #f8fcfb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .json-structure.active {
+            display: block;
+        }
+        
+        .json-structure pre {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            max-height: 200px;
+            font-size: 0.8rem;
         }
         
         .content {
             display: flex;
-            flex-wrap: wrap;
-            padding: 25px;
+            padding: 0 20px 20px;
+            gap: 20px;
         }
         
         .left-panel, .right-panel {
             flex: 1;
-            min-width: 300px;
-            padding: 15px;
         }
         
         .panel-title {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             margin-bottom: 15px;
             color: #1a5f7a;
             border-bottom: 2px solid #2a9d8f;
             padding-bottom: 8px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .panel-title i {
-            margin-right: 8px;
-        }
-        
-        .teacher-search {
-            background-color: #f8fcfb;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #1a5f7a;
-            font-size: 1rem;
-        }
-        
-        input, select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid #c8e6e1;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            transition: all 0.3s;
-            background-color: white;
-        }
-        
-        input:focus, select:focus {
-            outline: none;
-            border-color: #2a9d8f;
-            box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.2);
-        }
-        
-        .search-btn {
-            background: linear-gradient(90deg, #2a9d8f, #1a5f7a);
-            color: white;
-            border: none;
-            padding: 14px 25px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            width: 100%;
-            transition: all 0.3s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .search-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(26, 95, 122, 0.3);
-        }
-        
-        .search-btn:disabled {
-            background: #cccccc;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
         }
         
         .file-info {
-            margin-top: 20px;
+            background: #e8f6f3;
             padding: 15px;
-            background-color: #e8f6f3;
             border-radius: 8px;
+            margin-bottom: 20px;
             display: none;
         }
         
@@ -245,102 +176,58 @@
         }
         
         .file-info p {
-            margin-bottom: 8px;
+            margin: 5px 0;
             display: flex;
             align-items: center;
         }
         
         .file-info i {
-            margin-right: 10px;
+            margin-right: 8px;
             color: #1a5f7a;
             width: 20px;
         }
         
-        .sheet-preview {
-            margin-top: 20px;
-            background-color: #f8fcfb;
+        .teacher-list {
+            background: #f8fcfb;
             padding: 15px;
             border-radius: 8px;
-            display: none;
-        }
-        
-        .sheet-preview.active {
-            display: block;
-        }
-        
-        .sheet-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-            max-height: 150px;
+            max-height: 300px;
             overflow-y: auto;
-            padding: 5px;
         }
         
-        .sheet-item {
-            padding: 6px 12px;
-            background-color: #e8f6f3;
-            border-radius: 16px;
+        .teacher-item {
+            padding: 8px 12px;
+            background: #e8f6f3;
+            border-radius: 6px;
+            margin-bottom: 8px;
             cursor: pointer;
             transition: all 0.3s;
-            border: 2px solid transparent;
-            font-size: 0.85rem;
         }
         
-        .sheet-item:hover {
-            background-color: #d1e3e0;
-            transform: translateY(-2px);
+        .teacher-item:hover {
+            background: #d1e3e0;
+            transform: translateX(5px);
         }
         
-        .sheet-item.active {
-            background-color: #2a9d8f;
+        .teacher-item.active {
+            background: #2a9d8f;
             color: white;
-            border-color: #1a5f7a;
         }
         
         .timetable-section {
-            flex: 100%;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        
-        .timetable-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            margin: 0 20px 20px;
         }
         
         .teacher-info {
-            background-color: #e8f6f3;
+            background: #e8f6f3;
             padding: 12px 20px;
             border-radius: 8px;
+            margin-bottom: 20px;
             display: none;
-            align-items: center;
         }
         
         .teacher-info.active {
-            display: flex;
-        }
-        
-        .teacher-info i {
-            font-size: 1.2rem;
-            margin-right: 12px;
-            color: #1a5f7a;
-        }
-        
-        .teacher-name {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #1a5f7a;
-        }
-        
-        .sheet-info {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 3px;
+            display: block;
         }
         
         .timetable-container {
@@ -356,65 +243,27 @@
         }
         
         .timetable th {
-            background-color: #1a5f7a;
+            background: #1a5f7a;
             color: white;
             padding: 10px 8px;
             text-align: center;
             font-weight: 600;
             position: sticky;
             top: 0;
-            border: 1px solid #2a9d8f;
         }
         
         .timetable td {
             padding: 8px 6px;
             border: 1px solid #e0e0e0;
             text-align: center;
-            vertical-align: middle;
-        }
-        
-        .timetable tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .timetable tr:hover {
-            background-color: #f0f9f7;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px 20px;
-            color: #7f8c8d;
-        }
-        
-        .no-data i {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: #bdc3c7;
-        }
-        
-        .no-data h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 40px 20px;
-            color: #2a9d8f;
-        }
-        
-        .loading i {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
         }
         
         .error {
-            background-color: #ffebee;
+            background: #ffebee;
             color: #c62828;
             padding: 15px;
             border-radius: 6px;
-            margin-bottom: 15px;
+            margin: 20px;
             display: none;
             border-left: 4px solid #c62828;
         }
@@ -423,151 +272,39 @@
             display: block;
         }
         
-        footer {
+        .loading {
             text-align: center;
-            padding: 15px;
-            color: #7f8c8d;
-            font-size: 0.85rem;
-            border-top: 1px solid #eee;
-            background-color: #f8fcfb;
-        }
-        
-        .export-btn {
-            background-color: #1a5f7a;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s;
-        }
-        
-        .export-btn:hover:not(:disabled) {
-            background-color: #144b61;
-        }
-        
-        .export-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .export-btn i {
-            margin-right: 6px;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .prev-next-btn {
-            background-color: #2a9d8f;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            transition: all 0.3s;
-        }
-        
-        .prev-next-btn:hover:not(:disabled) {
-            background-color: #248f82;
-        }
-        
-        .prev-next-btn:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .table-container {
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        
-        .cell-content {
-            word-break: break-word;
-            max-width: 180px;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background-color: #e0e0e0;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-top: 10px;
+            padding: 40px 20px;
+            color: #2a9d8f;
             display: none;
         }
         
-        .progress-bar.active {
+        .loading.active {
             display: block;
         }
         
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #1a5f7a, #2a9d8f);
-            width: 0%;
-            transition: width 0.3s;
+        .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
         }
         
-        .data-source-info {
-            background-color: rgba(255, 255, 255, 0.1);
+        .debug-info {
+            background: #f5f5f5;
             padding: 10px;
             border-radius: 5px;
             margin-top: 10px;
-            font-size: 0.85rem;
-        }
-        
-        @media (max-width: 1100px) {
-            .content {
-                flex-direction: column;
-            }
-            
-            .left-panel, .right-panel {
-                width: 100%;
-            }
-            
-            h1 {
-                font-size: 1.8rem;
-            }
-            
-            .data-source-buttons {
-                flex-direction: column;
-            }
-            
-            .data-source-btn {
-                width: 100%;
-                justify-content: center;
-            }
+            font-size: 0.8rem;
+            color: #666;
         }
         
         @media (max-width: 768px) {
             .content {
-                padding: 15px;
-            }
-            
-            header {
-                padding: 20px 15px;
-            }
-            
-            h1 {
-                font-size: 1.5rem;
-            }
-            
-            .action-buttons {
                 flex-direction: column;
-                width: 100%;
-                margin-top: 10px;
             }
             
-            .prev-next-btn, .export-btn {
-                width: 100%;
-                justify-content: center;
+            .data-source-buttons {
+                flex-direction: column;
             }
         }
     </style>
@@ -575,793 +312,497 @@
 <body>
     <div class="container">
         <header>
-            <div class="header-content">
-                <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表查询系统</h1>
-                <p class="subtitle">GitHub Pages版 - 支持JSON和JSON.GZ数据源</p>
-                
-                <div class="data-source-section">
-                    <div class="data-source-title">
-                        <i class="fas fa-database"></i> 选择数据源
-                    </div>
-                    
-                    <div class="data-source-buttons">
-                        <button class="data-source-btn" id="loadJsonBtn">
-                            <i class="fas fa-file-code"></i> 加载JSON数据
-                        </button>
-                        <button class="data-source-btn" id="loadJsonGzBtn">
-                            <i class="fas fa-file-archive"></i> 加载JSON.GZ数据
-                        </button>
-                        <button class="data-source-btn" id="loadExcelBtn">
-                            <i class="fas fa-file-excel"></i> 上传Excel文件
-                        </button>
-                    </div>
-                    
-                    <input type="text" class="data-source-input" id="customDataSource" 
-                           placeholder="或输入自定义数据源URL (如: https://example.com/data.json.gz)">
-                    
-                    <div class="data-source-status" id="dataSourceStatus">
-                        当前数据源：<span id="currentDataSource">未选择</span>
-                    </div>
-                    
-                    <div class="data-source-info">
-                        <p><strong>提示：</strong> 在GitHub Pages上，推荐使用.json.gz格式，文件体积更小，加载更快。</p>
-                    </div>
-                    
-                    <div class="progress-bar" id="progressBar">
-                        <div class="progress-fill" id="progressFill"></div>
-                    </div>
-                </div>
-            </div>
+            <h1><i class="fas fa-chalkboard-teacher"></i> 教师课表查询系统</h1>
+            <p class="subtitle">修复版 - 支持多种JSON格式，正确显示文件大小和教师列表</p>
         </header>
+        
+        <div class="load-section">
+            <div class="load-title">
+                <i class="fas fa-database"></i> 加载数据源
+            </div>
+            
+            <div class="data-source-buttons">
+                <button class="data-source-btn" id="loadJsonBtn">
+                    <i class="fas fa-file-code"></i> 加载JSON
+                </button>
+                <button class="data-source-btn" id="loadJsonGzBtn">
+                    <i class="fas fa-file-archive"></i> 加载JSON.GZ
+                </button>
+            </div>
+            
+            <input type="text" class="data-source-input" id="customDataSource" 
+                   placeholder="或输入自定义URL (如: 教师课表.json)" 
+                   value="教师课表.json">
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="json-structure" id="jsonStructure">
+                <strong>当前JSON结构：</strong>
+                <pre id="jsonStructurePreview"></pre>
+            </div>
+        </div>
+        
+        <div class="error" id="errorMessage">
+            <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+        </div>
+        
+        <div class="loading" id="loadingIndicator">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>正在加载数据，请稍候...</p>
+        </div>
         
         <div class="content">
             <div class="left-panel">
-                <div class="panel-title">
-                    <i class="fas fa-search"></i> 教师列表
-                </div>
-                
+                <div class="panel-title">文件信息</div>
                 <div class="file-info" id="fileInfo">
-                    <p><i class="fas fa-file"></i> <strong>数据源：</strong> <span id="dataSourceName">未加载</span></p>
-                    <p><i class="fas fa-layer-group"></i> <strong>教师数量：</strong> <span id="teacherCount">0</span> 人</p>
+                    <p><i class="fas fa-file"></i> <strong>文件名：</strong> <span id="fileName">-</span></p>
+                    <p><i class="fas fa-database"></i> <strong>格式：</strong> <span id="fileFormat">-</span></p>
+                    <p><i class="fas fa-weight-hanging"></i> <strong>大小：</strong> <span id="fileSize">-</span></p>
+                    <p><i class="fas fa-users"></i> <strong>教师数：</strong> <span id="teacherCount">0</span></p>
                     <p><i class="fas fa-clock"></i> <strong>加载时间：</strong> <span id="loadTime">-</span></p>
-                    <p><i class="fas fa-hdd"></i> <strong>文件大小：</strong> <span id="fileSize">-</span></p>
                 </div>
                 
-                <div class="sheet-preview" id="sheetPreview">
-                    <div class="panel-title" style="font-size: 1.1rem;">
-                        <i class="fas fa-th-list"></i> 所有教师列表
-                    </div>
-                    <div class="sheet-list" id="sheetList">
-                        <!-- 教师列表将动态插入 -->
-                    </div>
-                </div>
-                
-                <div class="error" id="errorMessage">
-                    <i class="fas fa-exclamation-circle"></i> <span id="errorText"></span>
+                <div class="panel-title">教师列表</div>
+                <div class="teacher-list" id="teacherList">
+                    <div class="no-data">请先加载数据源</div>
                 </div>
             </div>
             
             <div class="right-panel">
-                <div class="panel-title">
-                    <i class="fas fa-user-tie"></i> 教师课表查询
-                </div>
-                
-                <div class="teacher-search">
-                    <div class="form-group">
-                        <label for="teacherSelect"><i class="fas fa-user-tie"></i> 选择教师</label>
-                        <select id="teacherSelect" disabled>
-                            <option value="">请先加载数据源</option>
-                        </select>
-                        <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">或直接输入教师姓名搜索：</p>
-                        <input type="text" id="teacherInput" placeholder="输入教师姓名..." disabled>
-                    </div>
-                    
-                    <button class="search-btn" id="searchBtn" disabled>
-                        <i class="fas fa-eye"></i> 查看教师课表
-                    </button>
-                </div>
-                
-                <div class="form-group" style="margin-top: 20px;">
-                    <label><i class="fas fa-info-circle"></i> 系统信息</label>
-                    <div style="background-color: #e8f6f3; padding: 12px; border-radius: 8px;">
-                        <p><i class="fas fa-code"></i> <strong>运行环境：</strong> <span id="runtimeEnv">GitHub Pages</span></p>
-                        <p><i class="fas fa-database"></i> <strong>数据格式：</strong> <span id="dataFormat">未加载</span></p>
-                        <p><i class="fas fa-users"></i> <strong>教师总数：</strong> <span id="totalTeachers">0</span></p>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 20px; background-color: #e8f6f3; padding: 15px; border-radius: 8px;">
-                    <h3 style="margin-bottom: 8px; color: #1a5f7a;"><i class="fas fa-info-circle"></i> 使用说明</h3>
-                    <p style="margin-bottom: 6px;"><strong>1. 选择数据源：</strong> 从上方选择数据源（推荐使用.json.gz格式）</p>
-                    <p style="margin-bottom: 6px;"><strong>2. 加载数据：</strong> 系统会自动从GitHub加载数据文件</p>
-                    <p style="margin-bottom: 6px;"><strong>3. 查询功能：</strong> 数据加载成功后，选择教师即可查看对应的课表</p>
-                </div>
-            </div>
-            
-            <div class="timetable-section">
-                <div class="panel-title">
-                    <i class="fas fa-calendar-alt"></i> 教师课表内容
-                </div>
-                
-                <div class="timetable-header">
-                    <div class="teacher-info" id="teacherInfo">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                        <div>
-                            <div class="teacher-name" id="currentTeacherName">教师姓名</div>
-                            <div class="sheet-info" id="currentSheetInfo">数据表：未选择</div>
-                            <div id="sheetStats">0行 × 0列</div>
-                        </div>
-                    </div>
-                    
-                    <div class="action-buttons" id="actionButtons" style="display: none;">
-                        <button class="prev-next-btn" id="prevBtn">
-                            <i class="fas fa-chevron-left"></i> 上一位
-                        </button>
-                        <button class="export-btn" id="exportBtn">
-                            <i class="fas fa-download"></i> 导出当前课表
-                        </button>
-                        <button class="prev-next-btn" id="nextBtn">
-                            下一位 <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+                <div class="panel-title">课表查看</div>
+                <div class="teacher-info" id="teacherInfo">
+                    <div style="font-size: 1.1rem; font-weight: bold;" id="currentTeacherName">未选择教师</div>
+                    <div style="font-size: 0.9rem; color: #666; margin-top: 5px;" id="currentSheetInfo">请从左侧选择教师</div>
                 </div>
                 
                 <div id="timetableContainer">
-                    <div class="no-data" id="noDataMessage">
+                    <div class="no-data">
                         <i class="fas fa-calendar-alt"></i>
                         <h3>暂无课表数据</h3>
-                        <p>请先加载数据源并选择教师以查看课表</p>
-                    </div>
-                    
-                    <div class="loading" id="loadingIndicator" style="display: none;">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>正在加载课表数据，请稍候...</p>
+                        <p>请从左侧选择教师以查看课表</p>
                     </div>
                     
                     <div class="timetable-container" id="timetableContent" style="display: none;">
-                        <div class="table-container">
-                            <table class="timetable" id="timetable">
-                                <thead id="tableHeader">
-                                    <!-- 表头将动态生成 -->
-                                </thead>
-                                <tbody id="tableBody">
-                                    <!-- 课表数据将动态插入 -->
-                                </tbody>
-                            </table>
-                        </div>
+                        <table class="timetable" id="timetable">
+                            <thead id="tableHeader"></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <footer>
-            <p>© 2023 教师课表查询系统 | 专为GitHub Pages优化，支持.json和.json.gz数据源</p>
-        </footer>
     </div>
 
     <script>
-        // 全局变量
-        let jsonData = null;
-        let teacherNames = [];
-        let currentTeacherIndex = -1;
-        let currentTeacherData = [];
-        let currentTeacherName = "";
-        let currentDataSource = "";
-        let currentDataSourceType = "";
-        
         // DOM元素
         const loadJsonBtn = document.getElementById('loadJsonBtn');
         const loadJsonGzBtn = document.getElementById('loadJsonGzBtn');
-        const loadExcelBtn = document.getElementById('loadExcelBtn');
         const customDataSource = document.getElementById('customDataSource');
-        const dataSourceStatus = document.getElementById('dataSourceStatus');
-        const currentDataSourceElem = document.getElementById('currentDataSource');
         const progressBar = document.getElementById('progressBar');
         const progressFill = document.getElementById('progressFill');
+        const jsonStructure = document.getElementById('jsonStructure');
+        const jsonStructurePreview = document.getElementById('jsonStructurePreview');
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const loadingIndicator = document.getElementById('loadingIndicator');
         const fileInfo = document.getElementById('fileInfo');
-        const dataSourceName = document.getElementById('dataSourceName');
+        const fileName = document.getElementById('fileName');
+        const fileFormat = document.getElementById('fileFormat');
+        const fileSize = document.getElementById('fileSize');
         const teacherCount = document.getElementById('teacherCount');
         const loadTime = document.getElementById('loadTime');
-        const fileSize = document.getElementById('fileSize');
-        const runtimeEnv = document.getElementById('runtimeEnv');
-        const dataFormat = document.getElementById('dataFormat');
-        const totalTeachers = document.getElementById('totalTeachers');
-        const teacherSelect = document.getElementById('teacherSelect');
-        const teacherInput = document.getElementById('teacherInput');
-        const searchBtn = document.getElementById('searchBtn');
-        const sheetPreview = document.getElementById('sheetPreview');
-        const sheetList = document.getElementById('sheetList');
+        const teacherList = document.getElementById('teacherList');
         const teacherInfo = document.getElementById('teacherInfo');
-        const currentTeacherNameElem = document.getElementById('currentTeacherName');
+        const currentTeacherName = document.getElementById('currentTeacherName');
         const currentSheetInfo = document.getElementById('currentSheetInfo');
-        const sheetStats = document.getElementById('sheetStats');
-        const actionButtons = document.getElementById('actionButtons');
-        const prevBtn = document.getElementById('prevBtn');
-        const nextBtn = document.getElementById('nextBtn');
-        const exportBtn = document.getElementById('exportBtn');
         const timetableContent = document.getElementById('timetableContent');
         const tableHeader = document.getElementById('tableHeader');
         const tableBody = document.getElementById('tableBody');
-        const noDataMessage = document.getElementById('noDataMessage');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const errorMessage = document.getElementById('errorMessage');
-        const errorText = document.getElementById('errorText');
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.xls,.xlsx';
-        fileInput.style.display = 'none';
-        document.body.appendChild(fileInput);
+        
+        // 全局变量
+        let jsonData = null;
+        let teachers = [];
+        let currentTeacherData = null;
         
         // 初始化事件监听器
         function initEventListeners() {
-            // 数据源按钮事件
-            loadJsonBtn.addEventListener('click', () => loadData('教师课表.json', 'json'));
-            loadJsonGzBtn.addEventListener('click', () => loadData('教师课表.json.gz', 'json.gz'));
-            loadExcelBtn.addEventListener('click', () => {
-                fileInput.click();
+            loadJsonBtn.addEventListener('click', () => {
+                const url = customDataSource.value.trim() || '教师课表.json';
+                loadData(url, 'json');
             });
             
-            // 自定义数据源输入事件
+            loadJsonGzBtn.addEventListener('click', () => {
+                const url = customDataSource.value.trim() || '教师课表.json.gz';
+                if (!url.endsWith('.gz')) {
+                    url = url + '.gz';
+                }
+                loadData(url, 'json.gz');
+            });
+            
             customDataSource.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' && customDataSource.value.trim()) {
+                if (e.key === 'Enter') {
                     const url = customDataSource.value.trim();
-                    if (url.endsWith('.json.gz')) {
+                    if (url.endsWith('.gz')) {
                         loadData(url, 'json.gz');
-                    } else if (url.endsWith('.json')) {
-                        loadData(url, 'json');
                     } else {
-                        showError('请输入有效的.json或.json.gz文件URL');
+                        loadData(url, 'json');
                     }
                 }
             });
-            
-            // Excel文件上传事件
-            fileInput.addEventListener('change', handleFileUpload);
-            
-            // 搜索按钮事件
-            searchBtn.addEventListener('click', searchTeacherTimetable);
-            teacherInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchTeacherTimetable();
-                }
-            });
-            
-            // 上一位/下一位按钮事件
-            prevBtn.addEventListener('click', showPrevTeacher);
-            nextBtn.addEventListener('click', showNextTeacher);
-            
-            // 导出按钮事件
-            exportBtn.addEventListener('click', exportCurrentTeacher);
-            
-            // 设置教师输入框自动完成
-            setupTeacherAutocomplete();
-            
-            // 尝试自动加载默认数据源
-            setTimeout(() => {
-                // 可以在这里添加自动加载逻辑
-                // 例如：loadData('教师课表.json.gz', 'json.gz');
-            }, 1000);
         }
         
         // 加载数据
         async function loadData(url, type) {
-            currentDataSource = url;
-            currentDataSourceType = type;
-            
-            // 显示数据源状态
-            currentDataSourceElem.textContent = url;
-            dataSourceStatus.classList.add('active');
+            // 重置状态
+            resetUI();
             
             // 显示加载状态
             progressBar.classList.add('active');
-            progressFill.style.width = '10%';
-            
-            loadingIndicator.style.display = 'block';
-            noDataMessage.style.display = 'none';
-            timetableContent.style.display = 'none';
-            teacherInfo.classList.remove('active');
-            actionButtons.style.display = 'none';
-            sheetPreview.classList.remove('active');
-            fileInfo.classList.remove('active');
+            loadingIndicator.classList.add('active');
             hideError();
             
+            const startTime = performance.now();
+            
             try {
-                // 记录开始时间
-                const startTime = performance.now();
+                // 更新进度
+                progressFill.style.width = '20%';
+                
+                // 发送请求
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                // 获取实际文件大小
+                const contentLength = response.headers.get('content-length');
+                const actualSize = contentLength ? parseInt(contentLength) : null;
                 
                 // 更新进度
-                progressFill.style.width = '30%';
+                progressFill.style.width = '50%';
                 
-                let response;
-                let dataSize = 0;
+                let rawData;
+                let jsonDataObj;
                 
-                // 加载数据
                 if (type === 'json.gz') {
-                    // 加载压缩的JSON文件
-                    response = await fetch(url);
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    // 获取文件大小
-                    dataSize = response.headers.get('content-length') || 0;
-                    
-                    // 获取原始数据
+                    // 处理压缩的JSON
                     const arrayBuffer = await response.arrayBuffer();
-                    
-                    // 更新进度
-                    progressFill.style.width = '60%';
+                    progressFill.style.width = '70%';
                     
                     // 解压缩
                     const decompressed = pako.inflate(arrayBuffer, { to: 'string' });
-                    
-                    // 更新进度
-                    progressFill.style.width = '80%';
+                    progressFill.style.width = '85%';
                     
                     // 解析JSON
-                    jsonData = JSON.parse(decompressed);
-                    
-                } else if (type === 'json') {
-                    // 加载普通的JSON文件
-                    response = await fetch(url, {
-                        headers: {
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json; charset=utf-8'
-                        }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP错误: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    // 获取文件大小
-                    dataSize = response.headers.get('content-length') || 0;
-                    
-                    // 更新进度
-                    progressFill.style.width = '60%';
+                    jsonDataObj = JSON.parse(decompressed);
+                    rawData = decompressed;
+                } else {
+                    // 处理普通JSON
+                    const text = await response.text();
+                    progressFill.style.width = '85%';
                     
                     // 解析JSON
-                    jsonData = await response.json();
+                    jsonDataObj = JSON.parse(text);
+                    rawData = text;
                 }
                 
                 // 计算加载时间
                 const endTime = performance.now();
                 const loadDuration = (endTime - startTime).toFixed(0);
                 
-                // 更新进度
+                // 完成进度
                 progressFill.style.width = '100%';
                 
-                // 获取所有教师名称
-                teacherNames = Object.keys(jsonData.teachers || {});
-                
-                // 更新文件信息
-                updateFileInfo(url, teacherNames.length, dataSize, loadDuration, type);
-                
-                // 填充教师选择下拉框
-                populateTeacherSelect(teacherNames);
-                
-                // 显示教师预览列表
-                displayTeacherPreview(teacherNames);
+                // 处理数据
+                processJsonData(jsonDataObj, url, type, actualSize, loadDuration, rawData.length);
                 
                 // 隐藏加载状态
-                loadingIndicator.style.display = 'none';
-                
-                // 启用查询功能
-                teacherSelect.disabled = false;
-                teacherInput.disabled = false;
-                searchBtn.disabled = false;
-                
-                // 显示成功消息
-                showSuccess(`成功加载${type}数据: ${url}，共发现 ${teacherNames.length} 个教师`);
+                setTimeout(() => {
+                    loadingIndicator.classList.remove('active');
+                    progressBar.classList.remove('active');
+                }, 300);
                 
             } catch (err) {
-                showError(`加载${type}数据失败: ${err.message}`);
-                loadingIndicator.style.display = 'none';
+                showError(`加载失败: ${err.message}`);
+                loadingIndicator.classList.remove('active');
+                progressBar.classList.remove('active');
             }
         }
         
-        // 处理Excel文件上传
-        function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        // 处理JSON数据
+        function processJsonData(data, url, type, actualSize, loadDuration, rawSize) {
+            try {
+                // 更新文件信息
+                updateFileInfo(url, type, actualSize, loadDuration, rawSize);
+                
+                // 显示JSON结构
+                showJsonStructure(data);
+                
+                // 提取教师列表
+                teachers = extractTeachers(data);
+                
+                if (teachers.length === 0) {
+                    showError('未找到教师数据。请检查JSON格式是否正确。');
+                    return;
+                }
+                
+                // 保存数据
+                jsonData = data;
+                
+                // 更新教师计数
+                teacherCount.textContent = teachers.length;
+                
+                // 显示教师列表
+                displayTeacherList(teachers);
+                
+                // 显示成功消息
+                showSuccess(`成功加载 ${teachers.length} 位教师数据`);
+                
+            } catch (err) {
+                showError(`处理数据失败: ${err.message}`);
+            }
+        }
+        
+        // 提取教师列表
+        function extractTeachers(data) {
+            const teachers = [];
             
-            // 验证文件类型
-            const validTypes = [
-                'application/vnd.ms-excel',
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/octet-stream'
-            ];
+            // 尝试多种可能的JSON结构
             
-            const fileExt = file.name.split('.').pop().toLowerCase();
-            const isValidType = validTypes.includes(file.type) || 
-                                ['xls', 'xlsx'].includes(fileExt);
-            
-            if (!isValidType) {
-                showError('请选择有效的Excel文件（.xls 或 .xlsx 格式）');
-                return;
+            // 1. 标准结构: {teachers: {name1: {...}, name2: {...}}}
+            if (data.teachers && typeof data.teachers === 'object') {
+                Object.keys(data.teachers).forEach(name => {
+                    teachers.push({
+                        name: name,
+                        data: data.teachers[name]
+                    });
+                });
             }
             
-            // 显示数据源状态
-            currentDataSource = file.name;
-            currentDataSourceType = 'excel';
-            currentDataSourceElem.textContent = file.name;
-            dataSourceStatus.classList.add('active');
+            // 2. 数组结构: [{name: "张三", ...}, {name: "李四", ...}]
+            else if (Array.isArray(data)) {
+                data.forEach((item, index) => {
+                    if (item.name || item.teacher) {
+                        teachers.push({
+                            name: item.name || item.teacher || `教师${index + 1}`,
+                            data: item
+                        });
+                    }
+                });
+            }
             
-            // 显示加载状态
-            progressBar.classList.add('active');
-            progressFill.style.width = '20%';
+            // 3. 简单对象结构: {张三: [...], 李四: [...]}
+            else if (typeof data === 'object' && !Array.isArray(data)) {
+                Object.keys(data).forEach(name => {
+                    if (Array.isArray(data[name]) || typeof data[name] === 'object') {
+                        teachers.push({
+                            name: name,
+                            data: data[name]
+                        });
+                    }
+                });
+            }
             
-            loadingIndicator.style.display = 'block';
-            noDataMessage.style.display = 'none';
-            timetableContent.style.display = 'none';
-            teacherInfo.classList.remove('active');
-            actionButtons.style.display = 'none';
-            sheetPreview.classList.remove('active');
-            fileInfo.classList.remove('active');
-            hideError();
-            
-            // 记录开始时间
-            const startTime = performance.now();
-            
-            // 读取文件
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    
-                    // 获取所有工作表名称
-                    teacherNames = workbook.SheetNames;
-                    
-                    // 构建JSON数据结构
-                    jsonData = {
-                        metadata: {
-                            filename: file.name,
-                            sheet_count: teacherNames.length,
-                            conversion_time: new Date().toISOString(),
-                            format: "Excel转JSON"
-                        },
-                        teachers: {}
-                    };
-                    
-                    // 处理每个工作表
-                    teacherNames.forEach((sheetName, index) => {
-                        const worksheet = workbook.Sheets[sheetName];
-                        const jsonDataArray = XLSX.utils.sheet_to_json(worksheet, {header: 1});
-                        
-                        jsonData.teachers[sheetName] = {
-                            name: sheetName,
-                            rows: jsonDataArray.length,
-                            cols: jsonDataArray.length > 0 ? Math.max(...jsonDataArray.map(row => row ? row.length : 0)) : 0,
-                            data: jsonDataArray
-                        };
+            // 4. 工作表结构: {worksheets: {name1: [...], name2: [...]}}
+            else if (data.worksheets && typeof data.worksheets === 'object') {
+                Object.keys(data.worksheets).forEach(name => {
+                    teachers.push({
+                        name: name,
+                        data: data.worksheets[name]
                     });
-                    
-                    // 计算加载时间
-                    const endTime = performance.now();
-                    const loadDuration = (endTime - startTime).toFixed(0);
-                    
-                    // 更新进度
-                    progressFill.style.width = '100%';
-                    
-                    // 更新文件信息
-                    updateFileInfo(file.name, teacherNames.length, file.size, loadDuration, 'excel');
-                    
-                    // 填充教师选择下拉框
-                    populateTeacherSelect(teacherNames);
-                    
-                    // 显示教师预览列表
-                    displayTeacherPreview(teacherNames);
-                    
-                    // 隐藏加载状态
-                    loadingIndicator.style.display = 'none';
-                    
-                    // 启用查询功能
-                    teacherSelect.disabled = false;
-                    teacherInput.disabled = false;
-                    searchBtn.disabled = false;
-                    
-                    // 显示成功消息
-                    showSuccess(`成功加载Excel文件: ${file.name}，共发现 ${teacherNames.length} 个教师`);
-                    
-                } catch (err) {
-                    showError('读取Excel文件失败：' + err.message);
-                    loadingIndicator.style.display = 'none';
-                }
-            };
+                });
+            }
             
-            reader.onerror = function() {
-                showError('读取文件失败，请重试');
-                loadingIndicator.style.display = 'none';
-            };
+            // 5. 检查是否有sheetNames和sheets
+            else if (data.sheetNames && Array.isArray(data.sheetNames) && data.sheets && typeof data.sheets === 'object') {
+                data.sheetNames.forEach(name => {
+                    if (data.sheets[name]) {
+                        teachers.push({
+                            name: name,
+                            data: data.sheets[name]
+                        });
+                    }
+                });
+            }
             
-            reader.readAsArrayBuffer(file);
+            return teachers;
         }
         
         // 更新文件信息
-        function updateFileInfo(filename, teacherCountValue, dataSize, loadDuration, dataType) {
-            dataSourceName.textContent = filename;
-            teacherCount.textContent = teacherCountValue;
-            loadTime.textContent = `${loadDuration}ms`;
-            totalTeachers.textContent = teacherCountValue;
-            dataFormat.textContent = dataType === 'json.gz' ? 'JSON (压缩)' : 
-                                    dataType === 'json' ? 'JSON' : 'Excel';
+        function updateFileInfo(url, type, actualSize, loadDuration, rawSize) {
+            const filename = url.split('/').pop();
+            fileName.textContent = filename;
+            fileFormat.textContent = type;
             
-            // 格式化文件大小
-            if (dataSize > 0) {
-                const sizeInKB = (dataSize / 1024).toFixed(1);
-                const sizeInMB = (dataSize / (1024 * 1024)).toFixed(2);
-                
-                if (dataSize < 1024) {
-                    fileSize.textContent = `${dataSize} B`;
-                } else if (dataSize < 1024 * 1024) {
-                    fileSize.textContent = `${sizeInKB} KB`;
+            // 优先使用实际文件大小，如果没有则使用原始数据大小
+            let size = actualSize || rawSize;
+            if (size) {
+                if (size < 1024) {
+                    fileSize.textContent = `${size} B`;
+                } else if (size < 1024 * 1024) {
+                    fileSize.textContent = `${(size / 1024).toFixed(1)} KB`;
                 } else {
-                    fileSize.textContent = `${sizeInMB} MB`;
+                    fileSize.textContent = `${(size / (1024 * 1024)).toFixed(2)} MB`;
                 }
             } else {
                 fileSize.textContent = '-';
             }
             
+            loadTime.textContent = `${loadDuration}ms`;
             fileInfo.classList.add('active');
         }
         
-        // 填充教师选择下拉框
-        function populateTeacherSelect(teachers) {
-            teacherSelect.innerHTML = '<option value="">请选择教师</option>';
-            
-            teachers.forEach((teacher, index) => {
-                const option = document.createElement('option');
-                option.value = index;
-                option.textContent = teacher;
-                teacherSelect.appendChild(option);
-            });
+        // 显示JSON结构
+        function showJsonStructure(data) {
+            const structure = analyzeJsonStructure(data);
+            jsonStructurePreview.textContent = JSON.stringify(structure, null, 2);
+            jsonStructure.classList.add('active');
         }
         
-        // 显示教师预览
-        function displayTeacherPreview(teachers) {
-            sheetList.innerHTML = '';
+        // 分析JSON结构
+        function analyzeJsonStructure(data, depth = 0, maxDepth = 3) {
+            if (depth > maxDepth) return '...';
+            
+            if (Array.isArray(data)) {
+                if (data.length === 0) return [];
+                const sample = data[0];
+                if (typeof sample === 'object' && sample !== null) {
+                    return [analyzeJsonStructure(sample, depth + 1, maxDepth)];
+                } else {
+                    return [typeof sample];
+                }
+            } else if (typeof data === 'object' && data !== null) {
+                const result = {};
+                Object.keys(data).forEach(key => {
+                    if (key === 'data' && Array.isArray(data[key]) && data[key].length > 0) {
+                        result[key] = `Array[${data[key].length}]`;
+                        if (data[key].length > 0 && Array.isArray(data[key][0])) {
+                            result[`${key}_shape`] = `${data[key].length}行 × ${data[key][0].length}列`;
+                        }
+                    } else if (typeof data[key] === 'object' && data[key] !== null) {
+                        result[key] = analyzeJsonStructure(data[key], depth + 1, maxDepth);
+                    } else {
+                        result[key] = typeof data[key];
+                    }
+                });
+                return result;
+            } else {
+                return typeof data;
+            }
+        }
+        
+        // 显示教师列表
+        function displayTeacherList(teachers) {
+            teacherList.innerHTML = '';
+            
+            if (teachers.length === 0) {
+                teacherList.innerHTML = '<div class="no-data">未找到教师数据</div>';
+                return;
+            }
             
             teachers.forEach((teacher, index) => {
                 const teacherItem = document.createElement('div');
-                teacherItem.className = 'sheet-item';
-                teacherItem.textContent = teacher;
-                teacherItem.title = `点击查看 ${teacher} 的课表`;
-                teacherItem.dataset.index = index;
+                teacherItem.className = 'teacher-item';
+                teacherItem.textContent = teacher.name;
+                teacherItem.title = `点击查看 ${teacher.name} 的课表`;
                 
-                teacherItem.addEventListener('click', function() {
+                teacherItem.addEventListener('click', () => {
                     // 移除其他项的active类
-                    document.querySelectorAll('.sheet-item').forEach(item => {
+                    document.querySelectorAll('.teacher-item').forEach(item => {
                         item.classList.remove('active');
                     });
                     
                     // 添加active类
-                    this.classList.add('active');
+                    teacherItem.classList.add('active');
                     
-                    // 选择对应的教师
-                    teacherSelect.value = this.dataset.index;
-                    teacherInput.value = teacher;
-                    
-                    // 自动查询
-                    searchTeacherTimetable();
+                    // 显示教师课表
+                    showTeacherTimetable(teacher);
                 });
                 
-                sheetList.appendChild(teacherItem);
-            });
-            
-            sheetPreview.classList.add('active');
-        }
-        
-        // 设置教师输入框自动完成
-        function setupTeacherAutocomplete() {
-            teacherInput.addEventListener('input', function() {
-                const value = this.value.toLowerCase().trim();
-                
-                if (value.length === 0) {
-                    teacherSelect.value = '';
-                    return;
-                }
-                
-                // 查找匹配的教师
-                for (let i = 0; i < teacherNames.length; i++) {
-                    if (teacherNames[i].toLowerCase().includes(value)) {
-                        teacherSelect.value = i;
-                        
-                        // 更新教师预览的高亮
-                        document.querySelectorAll('.sheet-item').forEach(item => {
-                            item.classList.remove('active');
-                            if (parseInt(item.dataset.index) === i) {
-                                item.classList.add('active');
-                            }
-                        });
-                        return;
-                    }
-                }
-                
-                teacherSelect.value = '';
-            });
-            
-            // 当下拉框选择变化时更新输入框
-            teacherSelect.addEventListener('change', function() {
-                if (this.value !== "") {
-                    const index = parseInt(this.value);
-                    if (index >= 0 && index < teacherNames.length) {
-                        teacherInput.value = teacherNames[index];
-                        
-                        // 更新教师预览的高亮
-                        document.querySelectorAll('.sheet-item').forEach(item => {
-                            item.classList.remove('active');
-                            if (parseInt(item.dataset.index) === index) {
-                                item.classList.add('active');
-                            }
-                        });
-                    }
-                } else {
-                    teacherInput.value = '';
-                }
+                teacherList.appendChild(teacherItem);
             });
         }
         
-        // 搜索教师课表
-        function searchTeacherTimetable() {
-            const selectedIndex = teacherSelect.value;
+        // 显示教师课表
+        function showTeacherTimetable(teacher) {
+            currentTeacherName.textContent = teacher.name;
+            currentSheetInfo.textContent = '正在加载课表...';
+            teacherInfo.classList.add('active');
             
-            if (selectedIndex === "" || !jsonData || teacherNames.length === 0) {
-                showError('请先选择教师');
-                return;
-            }
-            
-            const teacherIndex = parseInt(selectedIndex);
-            
-            if (teacherIndex < 0 || teacherIndex >= teacherNames.length) {
-                showError('选择的教师索引无效');
-                return;
-            }
-            
-            loadAndDisplayTeacher(teacherIndex);
-        }
-        
-        // 加载并显示教师课表
-        function loadAndDisplayTeacher(teacherIndex) {
-            currentTeacherIndex = teacherIndex;
-            currentTeacherName = teacherNames[teacherIndex];
-            
-            // 显示加载状态
-            loadingIndicator.style.display = 'block';
-            noDataMessage.style.display = 'none';
-            timetableContent.style.display = 'none';
-            hideError();
-            
-            // 延迟加载，让用户看到加载状态
             setTimeout(() => {
                 try {
-                    // 获取教师数据
-                    const teacherData = jsonData.teachers[currentTeacherName];
+                    const teacherData = teacher.data;
+                    let timetableData = [];
                     
-                    if (!teacherData) {
-                        showError(`无法加载教师数据: ${currentTeacherName}`);
-                        loadingIndicator.style.display = 'none';
+                    // 尝试多种数据结构
+                    if (Array.isArray(teacherData)) {
+                        timetableData = teacherData;
+                    } else if (teacherData.data && Array.isArray(teacherData.data)) {
+                        timetableData = teacherData.data;
+                    } else if (teacherData.timetable && Array.isArray(teacherData.timetable)) {
+                        timetableData = teacherData.timetable;
+                    } else if (teacherData.schedule && Array.isArray(teacherData.schedule)) {
+                        timetableData = teacherData.schedule;
+                    }
+                    
+                    if (timetableData.length === 0) {
+                        currentSheetInfo.textContent = '该教师没有课表数据';
                         return;
                     }
                     
-                    // 保存当前教师数据
-                    currentTeacherData = teacherData.data || [];
-                    
-                    // 显示教师信息
-                    currentTeacherNameElem.textContent = currentTeacherName;
-                    currentSheetInfo.textContent = `教师: ${currentTeacherName}`;
-                    
-                    const rowCount = teacherData.rows || 0;
-                    const colCount = teacherData.cols || 0;
-                    sheetStats.textContent = `${rowCount}行 × ${colCount}列`;
-                    
-                    teacherInfo.classList.add('active');
-                    actionButtons.style.display = 'flex';
+                    const rows = timetableData.length;
+                    const cols = rows > 0 ? Math.max(...timetableData.map(row => row ? row.length : 0)) : 0;
+                    currentSheetInfo.textContent = `${rows}行 × ${cols}列`;
                     
                     // 显示课表
-                    displayTeacherContent(currentTeacherData);
-                    
-                    // 更新按钮状态
-                    updateNavButtons();
-                    
-                    // 隐藏加载状态
-                    loadingIndicator.style.display = 'none';
+                    displayTimetable(timetableData);
                     
                 } catch (err) {
-                    showError('加载教师课表时出错：' + err.message);
-                    loadingIndicator.style.display = 'none';
+                    currentSheetInfo.textContent = '加载课表失败';
+                    showError(`显示课表失败: ${err.message}`);
                 }
-            }, 300);
+            }, 100);
         }
         
-        // 显示上一个教师
-        function showPrevTeacher() {
-            if (teacherNames.length === 0 || currentTeacherIndex <= 0) return;
-            
-            const prevIndex = currentTeacherIndex - 1;
-            teacherSelect.value = prevIndex;
-            teacherInput.value = teacherNames[prevIndex];
-            loadAndDisplayTeacher(prevIndex);
-        }
-        
-        // 显示下一个教师
-        function showNextTeacher() {
-            if (teacherNames.length === 0 || currentTeacherIndex >= teacherNames.length - 1) return;
-            
-            const nextIndex = currentTeacherIndex + 1;
-            teacherSelect.value = nextIndex;
-            teacherInput.value = teacherNames[nextIndex];
-            loadAndDisplayTeacher(nextIndex);
-        }
-        
-        // 更新导航按钮状态
-        function updateNavButtons() {
-            prevBtn.disabled = currentTeacherIndex <= 0;
-            nextBtn.disabled = currentTeacherIndex >= teacherNames.length - 1;
-        }
-        
-        // 显示教师课表内容
-        function displayTeacherContent(data) {
+        // 显示课表
+        function displayTimetable(data) {
             if (!data || data.length === 0) {
-                noDataMessage.innerHTML = `
-                    <i class="fas fa-file-excel"></i>
-                    <h3>教师课表为空</h3>
-                    <p>选中的教师没有任何课表数据</p>
-                `;
-                noDataMessage.style.display = 'block';
                 timetableContent.style.display = 'none';
                 return;
             }
             
-            // 获取列数（最大列数）
-            const maxCols = data.length > 0 ? Math.max(...data.map(row => row ? row.length : 0)) : 0;
+            // 获取列数
+            const maxCols = Math.max(...data.map(row => row ? row.length : 0));
             
             // 生成表头
             let headerHTML = '<tr>';
-            
-            // 第一列为行号
-            headerHTML += '<th style="width: 50px; background-color: #2a9d8f; color: white;">行号</th>';
-            
-            // 其他列为数据列
+            headerHTML += '<th>行号</th>';
             for (let col = 0; col < maxCols; col++) {
-                headerHTML += `<th style="min-width: 120px;">列${col + 1}</th>`;
+                headerHTML += `<th>列${col + 1}</th>`;
             }
-            
             headerHTML += '</tr>';
             tableHeader.innerHTML = headerHTML;
             
             // 生成表格行
             let bodyHTML = '';
-            
             for (let row = 0; row < data.length; row++) {
                 const rowData = data[row] || [];
-                bodyHTML += `<tr>`;
+                bodyHTML += '<tr>';
+                bodyHTML += `<td style="background-color: #e8f6f3; font-weight: bold;">${row + 1}</td>`;
                 
-                // 行号列
-                bodyHTML += `<td style="background-color: #e8f6f3; font-weight: bold; color: #1a5f7a; text-align: center;">${row + 1}</td>`;
-                
-                // 数据列
                 for (let col = 0; col < maxCols; col++) {
                     const cellValue = rowData[col] !== undefined ? rowData[col] : '';
                     const cellDisplay = formatCellValue(cellValue);
-                    
-                    // 第一行作为表头样式
-                    if (row === 0) {
-                        bodyHTML += `<td style="background-color: #f0f9f7; font-weight: 600;">${cellDisplay}</td>`;
-                    } else {
-                        bodyHTML += `<td><div class="cell-content">${cellDisplay}</div></td>`;
-                    }
+                    bodyHTML += `<td>${cellDisplay}</td>`;
                 }
                 
                 bodyHTML += '</tr>';
             }
-            
             tableBody.innerHTML = bodyHTML;
             
-            // 显示课表
-            noDataMessage.style.display = 'none';
+            // 显示表格
             timetableContent.style.display = 'block';
         }
         
@@ -1370,93 +811,64 @@
             if (value === null || value === undefined || value === '') {
                 return '';
             }
-            
-            // 默认返回字符串
             return String(value);
         }
         
-        // 导出当前教师课表
-        function exportCurrentTeacher() {
-            if (!currentTeacherData || currentTeacherData.length === 0) {
-                showError('没有可导出的课表数据');
-                return;
-            }
+        // 重置UI
+        function resetUI() {
+            jsonData = null;
+            teachers = [];
+            currentTeacherData = null;
             
-            try {
-                // 创建CSV内容
-                let csvContent = '';
-                
-                // 添加表头
-                const maxCols = currentTeacherData.length > 0 ? 
-                    Math.max(...currentTeacherData.map(row => row ? row.length : 0)) : 0;
-                
-                for (let col = 0; col < maxCols; col++) {
-                    csvContent += `列${col + 1},`;
-                }
-                csvContent = csvContent.slice(0, -1) + '\n';
-                
-                // 添加数据行
-                for (let row = 0; row < currentTeacherData.length; row++) {
-                    const rowData = currentTeacherData[row] || [];
-                    for (let col = 0; col < maxCols; col++) {
-                        const cellValue = rowData[col] !== undefined ? 
-                            String(rowData[col]).replace(/"/g, '""') : '';
-                        csvContent += `"${cellValue}",`;
-                    }
-                    csvContent = csvContent.slice(0, -1) + '\n';
-                }
-                
-                // 创建Blob并下载
-                const blob = new Blob(['\uFEFF' + csvContent], {type: 'text/csv;charset=utf-8;'});
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                link.setAttribute('href', url);
-                link.setAttribute('download', `${currentTeacherName}的课表.csv`);
-                link.style.visibility = 'hidden';
-                
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-            } catch (err) {
-                showError('导出课表时出错：' + err.message);
-            }
+            fileInfo.classList.remove('active');
+            teacherInfo.classList.remove('active');
+            timetableContent.style.display = 'none';
+            jsonStructure.classList.remove('active');
+            teacherList.innerHTML = '<div class="no-data">请先加载数据源</div>';
+            
+            progressFill.style.width = '0%';
         }
         
-        // 显示错误信息
+        // 显示错误
         function showError(message) {
             errorText.textContent = message;
             errorMessage.classList.add('active');
         }
         
-        // 显示成功信息
+        // 显示成功消息
         function showSuccess(message) {
-            // 临时显示成功信息
             const successDiv = document.createElement('div');
-            successDiv.className = 'error';
-            successDiv.style.backgroundColor = '#e8f6f3';
-            successDiv.style.color = '#1a5f7a';
-            successDiv.style.borderLeftColor = '#2a9d8f';
+            successDiv.style.cssText = `
+                background: #d4edda;
+                color: #155724;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 20px;
+                display: block;
+                border-left: 4px solid #28a745;
+            `;
             successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
             
             errorMessage.parentNode.insertBefore(successDiv, errorMessage);
             
-            // 3秒后移除
             setTimeout(() => {
                 successDiv.remove();
             }, 3000);
         }
         
-        // 隐藏错误信息
+        // 隐藏错误
         function hideError() {
             errorMessage.classList.remove('active');
         }
         
-        // 页面加载完成后的初始化
+        // 页面加载完成
         document.addEventListener('DOMContentLoaded', function() {
-            // 初始化事件监听器
             initEventListeners();
+            
+            // 自动尝试加载默认JSON文件
+            setTimeout(() => {
+                loadJsonBtn.click();
+            }, 500);
         });
     </script>
 </body>
