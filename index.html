@@ -648,13 +648,7 @@
         
         <div class="main-content">
 
-	<!-- 搜索框 -->
-                <div class="sidebar-section">
-                    <h2>🔍 搜索</h2>
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="搜索班级或教师..." disabled>
-                    </div>
-                </div>
+	
             <!-- 桌面端侧边栏 -->
             <div class="sidebar">
                 <!-- 班级列表 -->
@@ -676,7 +670,13 @@
                         </ul>
                     </div>
                 </div>
-                               
+                  <!-- 搜索框 -->
+                <div class="sidebar-section">
+                    <h2>🔍 搜索</h2>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="搜索班级或教师..." disabled>
+                    </div>
+                </div>             
             </div>
             
             <!-- 手机端侧边栏菜单 -->
@@ -1225,8 +1225,7 @@
                 
                 // 首先尝试预定义的文件
                 const defaultFiles = [
-                    '202603课表.json',
-                    'data.json'
+                    '202603课表.json'                    
                 ];
                 
                 for (const fileName of defaultFiles) {
