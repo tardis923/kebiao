@@ -647,6 +647,14 @@
         </div>
         
         <div class="main-content">
+
+	<!-- 搜索框 -->
+                <div class="sidebar-section">
+                    <h2>🔍 搜索</h2>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="搜索班级或教师..." disabled>
+                    </div>
+                </div>
             <!-- 桌面端侧边栏 -->
             <div class="sidebar">
                 <!-- 班级列表 -->
@@ -668,14 +676,7 @@
                         </ul>
                     </div>
                 </div>
-                
-                <!-- 搜索框 -->
-                <div class="sidebar-section">
-                    <h2>🔍 搜索</h2>
-                    <div class="search-box">
-                        <input type="text" id="searchInput" placeholder="搜索班级或教师..." disabled>
-                    </div>
-                </div>
+                               
             </div>
             
             <!-- 手机端侧边栏菜单 -->
@@ -685,6 +686,18 @@
                     <button class="close-menu-btn" id="closeMenuBtn">×</button>
                 </div>
                 
+<!-- 搜索框 -->
+                <div class="sidebar-section">
+                    <h2>🔍 搜索</h2>
+                    <div class="search-box">
+                        <input type="text" id="mobileSearchInput" placeholder="搜索班级或教师..." disabled>
+                        <button class="btn" id="mobileResetSearch" style="margin-top: 10px; width: 100%; padding: 10px; font-size: 0.9em;" disabled>
+                            重置搜索
+                        </button>
+                    </div>
+                </div>
+
+
                 <!-- 班级列表 -->
                 <div class="sidebar-section">
                     <h2>🏫 班级列表</h2>
@@ -705,16 +718,7 @@
                     </div>
                 </div>
                 
-                <!-- 搜索框 -->
-                <div class="sidebar-section">
-                    <h2>🔍 搜索</h2>
-                    <div class="search-box">
-                        <input type="text" id="mobileSearchInput" placeholder="搜索班级或教师..." disabled>
-                        <button class="btn" id="mobileResetSearch" style="margin-top: 10px; width: 100%; padding: 10px; font-size: 0.9em;" disabled>
-                            重置搜索
-                        </button>
-                    </div>
-                </div>
+                
             </div>
             
             <!-- 主要内容区域 -->
@@ -1221,10 +1225,7 @@
                 
                 // 首先尝试预定义的文件
                 const defaultFiles = [
-                    '202409课表.json',
-                    '202410课表.json',
-                    '202411课表.json',
-                    '课表.json',
+                    '202603课表.json',
                     'schedule.json',
                     'timetable.json',
                     'data.json'
