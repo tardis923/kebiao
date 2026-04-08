@@ -373,6 +373,41 @@
             padding: 40px;
         }
         
+        /* 最近使用的文件样式 */
+        .recent-files {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .recent-files h3 {
+            color: #495057;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+        }
+        
+        .recent-file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .recent-file-item {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+        
+        .recent-file-item:hover {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+        
         /* 模态框样式 */
         .modal {
             display: none;
@@ -693,6 +728,18 @@
                     <button class="btn btn-secondary" id="resetSearch" disabled>
                         <span>🔄 重置搜索</span>
                     </button>
+                    
+                    <button class="btn btn-secondary" id="clearHistoryBtn" style="background: #e74c3c;">
+                        <span>🗑️ 清除历史</span>
+                    </button>
+                </div>
+                
+                <!-- 最近使用的文件 -->
+                <div class="recent-files" id="recentFilesSection" style="display: none;">
+                    <h3>📂 最近使用的文件：</h3>
+                    <div class="recent-file-list" id="recentFilesList">
+                        <!-- 最近文件会动态添加到这里 -->
+                    </div>
                 </div>
                 
                 <!-- 课表显示区域 -->
@@ -765,12 +812,23 @@
         let mobileResetSearchBtn = null;
         let mobileClassesList = null;
         let mobileTeachersList = null;
+        let clearHistoryBtn = null;
+        let recentFilesSection = null;
+        let recentFilesList = null;
+
+        // 本地存储键名
+        const STORAGE_KEYS = {
+            RECENT_FILES: 'classScheduleRecentFiles',
+            LAST_FILE: 'classScheduleLastFile',
+            FILE_HISTORY: 'classScheduleFileHistory'
+        };
 
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             checkMobileDevice();
             initializeElements();
             initializeEventListeners();
+            initializeRecentFiles();
         });
 
         // 检测是否为移动设备
@@ -791,6 +849,9 @@
             loadJsonBtn = document.getElementById('loadJsonBtn');
             closeModalBtn = document.getElementById('closeModal');
             resetSearchBtn = document.getElementById('resetSearch');
+            clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            recentFilesSection = document.getElementById('recentFilesSection');
+            recentFilesList = document.getElementById('recentFilesList');
             
             // 移动端元素
             mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -812,6 +873,11 @@
             // 关闭模态框按钮事件
             if (closeModalBtn) {
                 closeModalBtn.addEventListener('click', hideJsonFileModal);
+            }
+            
+            // 清除历史按钮事件
+            if (clearHistoryBtn) {
+                clearHistoryBtn.addEventListener('click', clearHistory);
             }
             
             // 点击模态框背景关闭
@@ -879,6 +945,146 @@
             window.addEventListener('resize', function() {
                 checkMobileDevice();
             });
+        }
+
+        // 初始化最近使用的文件
+        function initializeRecentFiles() {
+            try {
+                // 检查是否有上次使用的文件
+                const lastFile = localStorage.getItem(STORAGE_KEYS.LAST_FILE);
+                if (lastFile) {
+                    // 显示最近文件区域
+                    if (recentFilesSection) {
+                        recentFilesSection.style.display = 'block';
+                    }
+                    
+                    // 加载最近文件列表
+                    loadRecentFiles();
+                    
+                    // 尝试自动加载上次使用的文件
+                    setTimeout(() => {
+                        showMessage('正在加载上次使用的文件...', '#3498db');
+                        setTimeout(() => {
+                            loadJsonFile(lastFile, true); // true表示是自动加载
+                        }, 500);
+                    }, 1000);
+                } else {
+                    // 如果没有最近文件，检查是否有文件历史记录
+                    loadRecentFiles();
+                }
+            } catch (err) {
+                console.error('初始化最近文件失败:', err);
+            }
+        }
+
+        // 加载最近文件列表
+        function loadRecentFiles() {
+            try {
+                const history = getFileHistory();
+                
+                if (history.length === 0) {
+                    if (recentFilesSection) {
+                        recentFilesSection.style.display = 'none';
+                    }
+                    return;
+                }
+                
+                // 显示最近文件区域
+                if (recentFilesSection) {
+                    recentFilesSection.style.display = 'block';
+                }
+                
+                // 清空列表
+                if (recentFilesList) {
+                    recentFilesList.innerHTML = '';
+                }
+                
+                // 只显示最近的5个文件
+                const recentFiles = history.slice(0, 5);
+                
+                recentFiles.forEach((fileName, index) => {
+                    const div = document.createElement('div');
+                    div.textContent = `${index + 1}. ${fileName}`;
+                    div.className = 'recent-file-item';
+                    
+                    div.addEventListener('click', () => {
+                        loadJsonFile(fileName, false);
+                    });
+                    
+                    if (recentFilesList) {
+                        recentFilesList.appendChild(div);
+                    }
+                });
+                
+            } catch (err) {
+                console.error('加载最近文件列表失败:', err);
+            }
+        }
+
+        // 获取文件历史记录
+        function getFileHistory() {
+            try {
+                const historyJson = localStorage.getItem(STORAGE_KEYS.FILE_HISTORY);
+                if (historyJson) {
+                    return JSON.parse(historyJson);
+                }
+            } catch (err) {
+                console.error('读取文件历史记录失败:', err);
+            }
+            return [];
+        }
+
+        // 保存文件到历史记录
+        function saveToFileHistory(fileName) {
+            try {
+                let history = getFileHistory();
+                
+                // 移除已存在的相同文件
+                history = history.filter(file => file !== fileName);
+                
+                // 将新文件添加到开头
+                history.unshift(fileName);
+                
+                // 限制历史记录最多保存10个文件
+                if (history.length > 10) {
+                    history = history.slice(0, 10);
+                }
+                
+                // 保存到本地存储
+                localStorage.setItem(STORAGE_KEYS.FILE_HISTORY, JSON.stringify(history));
+                localStorage.setItem(STORAGE_KEYS.LAST_FILE, fileName);
+                
+                // 更新最近文件列表显示
+                loadRecentFiles();
+                
+            } catch (err) {
+                console.error('保存文件历史记录失败:', err);
+            }
+        }
+
+        // 清除历史记录
+        function clearHistory() {
+            if (confirm('确定要清除所有历史记录吗？')) {
+                try {
+                    localStorage.removeItem(STORAGE_KEYS.RECENT_FILES);
+                    localStorage.removeItem(STORAGE_KEYS.LAST_FILE);
+                    localStorage.removeItem(STORAGE_KEYS.FILE_HISTORY);
+                    
+                    if (recentFilesSection) {
+                        recentFilesSection.style.display = 'none';
+                    }
+                    
+                    if (recentFilesList) {
+                        recentFilesList.innerHTML = '';
+                    }
+                    
+                    showMessage('历史记录已清除', '#27ae60');
+                    
+                } catch (err) {
+                    console.error('清除历史记录失败:', err);
+                    showError('清除历史记录失败');
+                }
+            }
         }
 
         // 切换移动端菜单
@@ -1016,7 +1222,7 @@
                 // 首先尝试预定义的文件
                 const defaultFiles = [
                     '202409课表.json',
-                    '202603课表.json',
+                    '202410课表.json',
                     '202411课表.json',
                     '课表.json',
                     'schedule.json',
@@ -1097,9 +1303,18 @@
                 return;
             }
             
+            // 获取历史记录，为最近使用的文件添加标记
+            const history = getFileHistory();
+            
             files.forEach((fileName, index) => {
                 const div = document.createElement('div');
                 div.textContent = fileName;
+                
+                // 如果是最近使用的文件，添加星标
+                if (history.includes(fileName)) {
+                    div.textContent = '⭐ ' + fileName;
+                }
+                
                 div.className = 'json-file-item';
                 
                 if (currentJsonFile === fileName) {
@@ -1107,7 +1322,7 @@
                 }
                 
                 div.addEventListener('click', () => {
-                    loadJsonFile(fileName);
+                    loadJsonFile(fileName, false);
                 });
                 
                 jsonFileListElement.appendChild(div);
@@ -1115,10 +1330,16 @@
         }
 
         // 加载JSON文件
-        async function loadJsonFile(fileName) {
+        async function loadJsonFile(fileName, isAutoLoad = false) {
             try {
-                hideJsonFileModal();
-                showMessage(`正在加载: ${fileName}`, '#3498db');
+                if (!isAutoLoad) {
+                    hideJsonFileModal();
+                }
+                
+                if (!isAutoLoad) {
+                    showMessage(`正在加载: ${fileName}`, '#3498db');
+                }
+                
                 currentJsonFile = fileName;
                 
                 const response = await fetch(fileName, {
@@ -1137,9 +1358,14 @@
                 const data = await response.json();
                 processJsonData(data, fileName);
                 
+                // 保存到历史记录
+                saveToFileHistory(fileName);
+                
             } catch (err) {
                 console.error('加载JSON文件失败:', err);
-                showError(`加载文件失败: ${err.message}`);
+                if (!isAutoLoad) {
+                    showError(`加载文件失败: ${err.message}`);
+                }
             }
         }
 
