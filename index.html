@@ -329,6 +329,7 @@
             word-break: break-word;
             font-size: 0.85em;
             vertical-align: middle; /* 垂直居中 */
+            white-space: pre-line; /* 单元格内的换行直接显示为换行（单周/双周两行显示） */
         }
         
         .period-cell {
@@ -643,7 +644,7 @@
                 <span></span>
             </button>
             <h1>📚 班级与教师课表查询系统</h1>
-            <p>点击"选择JSON文件"加载课表数据</p>
+            <p>点击"选择JSON文件"加载总课表数据，自动生成班级课表和教师课表</p>
         </div>
         
         <div class="main-content">
@@ -779,6 +780,14 @@
                 <div class="json-file-list" id="jsonFileList">
                     <div class="no-data">正在扫描同路径下的JSON文件...</div>
                 </div>
+                <!-- 本地直接选择文件：双击打开页面（file:// 协议）时浏览器禁止自动扫描目录，用此按钮手动选择 -->
+                <div style="margin-top: 15px; border-top: 1px dashed #e9ecef; padding-top: 15px;">
+                    <button class="btn" id="browseJsonBtn" style="width: 100%;">📂 从本地选择 JSON 文件</button>
+                    <div style="font-size: 12px; color: #999; margin-top: 8px; text-align: center;">
+                        如果上方列表为空，请点击此按钮直接选择课表 JSON 文件（任意位置均可）
+                    </div>
+                    <input type="file" id="localJsonFile" accept=".json,application/json" style="display: none;">
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn-outline" id="closeModal">关闭</button>
@@ -808,6 +817,8 @@
         let jsonFileModal = null;
         let loadJsonBtn = null;
         let closeModalBtn = null;
+        let browseJsonBtn = null;
+        let localJsonFileInput = null;
         let resetSearchBtn = null;
         let mobileMenuBtn = null;
         let mobileSidebar = null;
@@ -824,7 +835,8 @@
         const STORAGE_KEYS = {
             RECENT_FILES: 'classScheduleRecentFiles',
             LAST_FILE: 'classScheduleLastFile',
-            FILE_HISTORY: 'classScheduleFileHistory'
+            FILE_HISTORY: 'classScheduleFileHistory',
+            JSON_CACHE: 'classScheduleJsonCache'
         };
 
         // 初始化
@@ -852,6 +864,8 @@
             jsonFileModal = document.getElementById('jsonFileModal');
             loadJsonBtn = document.getElementById('loadJsonBtn');
             closeModalBtn = document.getElementById('closeModal');
+            browseJsonBtn = document.getElementById('browseJsonBtn');
+            localJsonFileInput = document.getElementById('localJsonFile');
             resetSearchBtn = document.getElementById('resetSearch');
             clearHistoryBtn = document.getElementById('clearHistoryBtn');
             recentFilesSection = document.getElementById('recentFilesSection');
@@ -877,6 +891,21 @@
             // 关闭模态框按钮事件
             if (closeModalBtn) {
                 closeModalBtn.addEventListener('click', hideJsonFileModal);
+            }
+            
+            // 从本地选择JSON文件（file:// 协议下浏览器禁止自动扫描目录，这是最可靠的方式）
+            if (browseJsonBtn && localJsonFileInput) {
+                browseJsonBtn.addEventListener('click', () => {
+                    localJsonFileInput.click();
+                });
+                localJsonFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (file) {
+                        loadLocalJsonFile(file);
+                    }
+                    // 重置输入，允许再次选择同一个文件
+                    localJsonFileInput.value = '';
+                });
             }
             
             // 清除历史按钮事件
@@ -1036,6 +1065,41 @@
                 console.error('读取文件历史记录失败:', err);
             }
             return [];
+        }
+
+        // 读取缓存的JSON内容（file:// 本地打开时 fetch 会被浏览器拦截，用缓存实现自动加载）
+        function getStoredJsonContent(fileName) {
+            try {
+                const cacheJson = localStorage.getItem(STORAGE_KEYS.JSON_CACHE);
+                if (cacheJson) {
+                    const cache = JSON.parse(cacheJson);
+                    if (cache && cache[fileName]) {
+                        return cache[fileName];
+                    }
+                }
+            } catch (err) {
+                console.error('读取JSON缓存失败:', err);
+            }
+            return null;
+        }
+
+        // 缓存JSON内容，最多保留5个文件，防止超出localStorage容量
+        function storeJsonContent(fileName, content) {
+            try {
+                let cache = {};
+                const cacheJson = localStorage.getItem(STORAGE_KEYS.JSON_CACHE);
+                if (cacheJson) {
+                    cache = JSON.parse(cacheJson);
+                }
+                cache[fileName] = content;
+                const keys = Object.keys(cache);
+                while (keys.length > 5) {
+                    delete cache[keys.shift()];
+                }
+                localStorage.setItem(STORAGE_KEYS.JSON_CACHE, JSON.stringify(cache));
+            } catch (err) {
+                console.error('保存JSON缓存失败（可能超出容量）:', err);
+            }
         }
 
         // 保存文件到历史记录
@@ -1205,7 +1269,7 @@
                 const fileList = await getJsonFiles();
                 
                 if (fileList.length === 0) {
-                    showMessageInModal('未在同路径下找到JSON文件。请确保有课表JSON文件存在。');
+                    showMessageInModal('未在同路径下找到JSON文件。请点击下方"从本地选择JSON文件"按钮，直接选择课表JSON文件。');
                     return;
                 }
                 
@@ -1214,7 +1278,8 @@
                 
             } catch (err) {
                 console.error('扫描JSON文件失败:', err);
-                showMessageInModal('扫描文件失败: ' + err.message);
+                // file:// 本地打开时 fetch 被浏览器拦截，提示用本地选择按钮
+                showMessageInModal('无法自动扫描同路径文件（浏览器安全限制）。请点击下方"从本地选择JSON文件"按钮，直接选择课表JSON文件。');
             }
         }
 
@@ -1225,6 +1290,7 @@
                 
                 // 首先尝试预定义的文件
                 const defaultFiles = [
+                    '2026-2027总课表.json',
                     '202603课表.json'                    
                 ];
                 
@@ -1327,7 +1393,7 @@
             });
         }
 
-        // 加载JSON文件
+        // 加载JSON文件（优先使用缓存内容，本地 file:// 打开时 fetch 不可用）
         async function loadJsonFile(fileName, isAutoLoad = false) {
             try {
                 if (!isAutoLoad) {
@@ -1339,6 +1405,15 @@
                 }
                 
                 currentJsonFile = fileName;
+                
+                // 本地模式下优先使用缓存内容
+                const cached = getStoredJsonContent(fileName);
+                if (cached) {
+                    const data = JSON.parse(cached);
+                    processJsonData(data, fileName);
+                    saveToFileHistory(fileName);
+                    return;
+                }
                 
                 const response = await fetch(fileName, {
                     method: 'GET',
@@ -1353,7 +1428,10 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
-                const data = await response.json();
+                const text = await response.text();
+                const data = JSON.parse(text);
+                // 保存内容到缓存，方便下次本地打开时自动加载
+                storeJsonContent(fileName, text);
                 processJsonData(data, fileName);
                 
                 // 保存到历史记录
@@ -1365,6 +1443,39 @@
                     showError(`加载文件失败: ${err.message}`);
                 }
             }
+        }
+
+        // 从本地文件选择框加载JSON（file:// 协议下最可靠的方式）
+        function loadLocalJsonFile(file) {
+            if (!file) return;
+            
+            showMessage(`正在读取: ${file.name}`, '#3498db');
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const text = e.target.result;
+                    const data = JSON.parse(text);
+                    
+                    hideJsonFileModal();
+                    currentJsonFile = file.name;
+                    processJsonData(data, file.name);
+                    
+                    // 保存历史记录和内容缓存
+                    saveToFileHistory(file.name);
+                    storeJsonContent(file.name, text);
+                    
+                    showMessage(`已加载: ${file.name}`, '#2ecc71');
+                    
+                } catch (parseErr) {
+                    console.error('解析JSON失败:', parseErr);
+                    showError(`解析文件失败: ${file.name} 不是有效的JSON文件`);
+                }
+            };
+            reader.onerror = () => {
+                showError('读取文件失败，请重试');
+            };
+            reader.readAsText(file, 'utf-8');
         }
 
         // 处理JSON数据
@@ -1385,10 +1496,18 @@
                     console.log('提取到的班级数量:', classes.length, '班级列表:', classes.map(c => c.name));
                     console.log('提取到的教师数量:', teachers.length, '教师列表:', teachers.map(t => t.name));
                 } else if (data.classes) {
+                    // 总课表格式：JSON 里只有班级数据，教师课表由班级数据自动生成
+                    console.log('classes字段存在（总课表格式），包含班级数:', Object.keys(data.classes).length);
+                    
                     classes = extractClassesFromSeparateField(data.classes);
                     if (data.teachers) {
                         teachers = extractTeachers(data.teachers);
+                    } else {
+                        teachers = generateTeacherSchedules(data.classes);
                     }
+                    
+                    console.log('生成的班级数量:', classes.length, '班级列表:', classes.map(c => c.name));
+                    console.log('生成的教师数量:', teachers.length, '教师列表:', teachers.map(t => t.name));
                 } else {
                     classes = extractClasses(data);
                     teachers = extractTeachers(data);
@@ -1490,6 +1609,93 @@
             return classes;
         }
 
+        // 从总课表（班级数据）自动生成教师课表
+        // 班级课表单元格格式："科目<br>(教师)"，例如 "数学<br>(刘敏)"
+        function generateTeacherSchedules(classesData) {
+            const teacherMap = new Map(); // 教师名 -> { count: 节数, grid: Map(节次 -> Map(星期 -> 单元格文本)) }
+            
+            function ensureTeacher(name) {
+                if (!teacherMap.has(name)) {
+                    teacherMap.set(name, { count: 0, grid: new Map() });
+                }
+                return teacherMap.get(name);
+            }
+            
+            if (classesData && typeof classesData === 'object') {
+                Object.keys(classesData).forEach(className => {
+                    const classData = classesData[className];
+                    if (!classData || !classData.data || !Array.isArray(classData.data)) return;
+                    const data = classData.data;
+                    
+                    // 遍历班级课表的每一节、每一天
+                    for (let i = 1; i < data.length; i++) {
+                        const row = data[i];
+                        if (!Array.isArray(row) || row.length < 6) continue;
+                        
+                        const periodText = String(row[0] || '').trim();
+                        const period = parseInt(periodText, 10);
+                        if (isNaN(period) || period <= 0) continue;
+                        
+                        for (let d = 1; d <= 5; d++) {
+                            const cell = String(row[d] || '').trim();
+                            if (!cell) continue;
+                            
+                            // 一个格子里可能有多节课（单周/双周轮换），用换行或；分隔
+                            const parts = cell.split(/\n|；/);
+                            for (let idx = 0; idx < parts.length; idx++) {
+                                const part = parts[idx].trim();
+                                if (!part) continue;
+                                
+                                // 解析 "科目<br>(教师)"，可带 "单周/双周" 标记
+                                const match = part.match(/^(.+?)<br>\s*\((.+?)\)\s*(单周|双周)?$/);
+                                if (!match || !match[2].trim()) continue;
+                                
+                                const subject = match[1].trim();
+                                const teacher = match[2].trim();
+                                if (!teacher) continue;
+                                
+                                const label = match[3] || '';
+                                const t = ensureTeacher(teacher);
+                                if (!t.grid.has(period)) t.grid.set(period, new Map());
+                                t.grid.get(period).set(d, subject + '<br>(' + className + ')' + (label ? ' ' + label : ''));
+                                t.count++;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // 计算最大节次，保证每张教师课表行数一致
+            let maxPeriod = 0;
+            teacherMap.forEach(t => {
+                t.grid.forEach((dayMap, period) => {
+                    if (period > maxPeriod) maxPeriod = period;
+                });
+            });
+            
+            const teachers = [];
+            teacherMap.forEach((t, name) => {
+                const data = [["", "星期一", "星期二", "星期三", "星期四", "星期五"]];
+                for (let p = 1; p <= maxPeriod; p++) {
+                    const row = [String(p)];
+                    for (let d = 1; d <= 5; d++) {
+                        row.push(t.grid.has(p) && t.grid.get(p).has(d) ? t.grid.get(p).get(d) : "");
+                    }
+                    data.push(row);
+                }
+                teachers.push({
+                    name: name,
+                    description: t.count + '节',
+                    rows: data.length,
+                    cols: 6,
+                    data: data
+                });
+            });
+            
+            teachers.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+            return teachers;
+        }
+
         // 提取班级课表
         function extractClasses(teachersData) {
             const classes = [];
@@ -1562,19 +1768,22 @@
             return hasClassCharacter && hasNumbers;
         }
 
-        // 提取年级数字
+        // 提取年级数字（支持 二~六、初一~初三、高一~高三）
         function extractGrade(className) {
             if (!className) return 0;
             
-            const match = className.match(/([初高一二三])/);
+            const match = className.match(/([初高])?([一二三四五六七八九十]+)/);
             if (!match) return 0;
             
-            const gradeMap = {
+            const numMap = {
                 '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6,
-                '七': 7, '八': 8, '九': 9, '十': 10
+                '七': 7, '八': 8, '九': 9, '十': 10,
+                '十一': 11, '十二': 12
             };
             
-            return gradeMap[match[1]] || 0;
+            const num = numMap[match[2]] || 0;
+            const base = match[1] === '初' ? 7 : (match[1] === '高' ? 10 : 0);
+            return base + num;
         }
 
         // 提取班级编号
